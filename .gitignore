@@ -39,6 +39,7 @@ yarn-error.log*
 # vinext / cloudflare build output (see docs/deploy.md)
 /dist/
 .vinext/
+.wrangler/
 
 # typescript
 *.tsbuildinfo

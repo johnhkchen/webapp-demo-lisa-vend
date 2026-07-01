@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import vinext from "vinext";
+import { cloudflare } from "@cloudflare/vite-plugin";
 
 // vinext() auto-registers @vitejs/plugin-rsc (the App Router RSC boundary) and
 // @vitejs/plugin-react (Fast Refresh + JSX), and resolves the tsconfig `paths`
@@ -8,5 +9,13 @@ import vinext from "vinext";
 // docs/active/work/T-006-01-02/design.md Decision 1 for why plugin-rsc is not
 // imported explicitly.
 export default defineConfig({
-  plugins: [vinext()],
+  plugins: [
+    vinext(),
+    cloudflare({
+      viteEnvironment: {
+        name: "rsc",
+        childEnvironments: ["ssr"],
+      },
+    }),
+  ],
 });
