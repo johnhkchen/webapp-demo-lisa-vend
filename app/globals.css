@@ -63,6 +63,60 @@
   }
 }
 
+/*
+ * Per-piece neon glow utilities (E-004). `.glow-{i,o,t,s,z,j,l}` radiate a neon halo in that
+ * piece's signature hue; a bare `.glow` blooms in currentColor for accents. Filled cells/accents
+ * apply ONE class and get the bloom — no component re-derives box-shadow values.
+ *
+ * Shape: the box-shadow geometry (a 3-layer 0-offset bloom) is written ONCE on a grouped selector
+ * reading `var(--glow-color, currentColor)`; each `.glow-{piece}` only sets `--glow-color` to the
+ * matching `--color-piece-*` token. So `.glow-t` alone = purple bloom (single-class), the geometry
+ * is not duplicated, and the hue tracks the token if it is ever retuned.
+ *
+ * `@layer components` (NOT `@utility`) on purpose: Tailwind v4 tree-shakes custom `@utility`
+ * classes with no scanned consumer, and E-004 forbids a component consumer — a `@utility glow-*`
+ * would vanish from the production build (same trap `.glass` and the color tokens hit). Component-
+ * layer rules emit unconditionally AND sit below `utilities`, so consumer utilities still compose.
+ * Spreads are `var(--glow-spread-N, default)` so intensity is tunable per-call without new classes.
+ */
+@layer components {
+  .glow,
+  .glow-i,
+  .glow-o,
+  .glow-t,
+  .glow-s,
+  .glow-z,
+  .glow-j,
+  .glow-l {
+    box-shadow:
+      0 0 var(--glow-spread-1, 4px) var(--glow-color, currentColor),
+      0 0 var(--glow-spread-2, 12px) var(--glow-color, currentColor),
+      0 0 var(--glow-spread-3, 24px) var(--glow-color, currentColor);
+  }
+
+  .glow-i {
+    --glow-color: var(--color-piece-i);
+  }
+  .glow-o {
+    --glow-color: var(--color-piece-o);
+  }
+  .glow-t {
+    --glow-color: var(--color-piece-t);
+  }
+  .glow-s {
+    --glow-color: var(--color-piece-s);
+  }
+  .glow-z {
+    --glow-color: var(--color-piece-z);
+  }
+  .glow-j {
+    --glow-color: var(--color-piece-j);
+  }
+  .glow-l {
+    --glow-color: var(--color-piece-l);
+  }
+}
+
 html,
 body {
   height: 100%;
