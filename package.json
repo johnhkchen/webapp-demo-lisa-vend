@@ -2,10 +2,11 @@
   "name": "webapp-demo-lisa-vend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vinext dev",
+    "build": "vinext build",
+    "start": "vinext start",
     "lint": "eslint --max-warnings 0",
     "test": "vitest run"
   },
@@ -30,7 +31,7 @@
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vite": "^7.3.6",
+    "vite": "^8.1.2",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.9"
   }
