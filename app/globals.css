@@ -4,6 +4,11 @@
  * Base scaffold styles. The neon/glass theme (tokens, glow, animation) is a later
  * epic — this only establishes a dark, full-height canvas so downstream visual work
  * has ground to build on.
+ *
+ * Color flows token -> utility, not raw CSS: the `:root` vars below are bridged by
+ * `@theme inline` into the `bg-background` / `text-foreground` utilities, which
+ * `app/layout.tsx` applies to <body>. That proves the Tailwind token pipeline is
+ * wired end-to-end; the theme epic extends this palette rather than re-plumbing it.
  */
 
 :root {
@@ -22,7 +27,5 @@ body {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
