@@ -14,11 +14,17 @@
  * (T-003-02-01). Keyboard scope is move (left/right) and rotate (CW/CCW); soft/hard-drop keys
  * (T-003-03-02) arrive later and hang off the same `dispatch` — `ArrowDown` and the drop key are
  * intentionally absent from the map here.
+ *
+ * Game-over (T-003-02-02): the core sets `state.gameOver` when a fresh spawn tops out. We gate the
+ * gravity loop on `!gameOver` so the tick actually *halts* (not merely no-ops), and render a
+ * `GameOverlay` over the frozen board so the end state is observable. Locked cells and cleared lines
+ * need no code here — they already flow through the composed `view`.
  */
 
 import { useEffect } from "react";
 
 import Board from "@/components/Board";
+import GameOverlay from "@/components/GameOverlay";
 import { useGame, GRAVITY_INTERVAL_MS } from "@/components/useGame";
 import { useAnimationFrameLoop } from "@/components/useAnimationFrameLoop";
 import type { Input } from "@/lib/game";
@@ -39,10 +45,12 @@ const KEY_TO_INPUT: Record<string, Input> = {
 };
 
 export default function GameContainer() {
-  const { view, dispatch } = useGame();
+  const { state, view, dispatch } = useGame();
 
   // Automatic gravity: one core "tick" (descend → lock → clear → spawn) per interval, no input.
-  useAnimationFrameLoop(() => dispatch("tick"), GRAVITY_INTERVAL_MS);
+  // Gated on !gameOver so topping out truly stops the loop (the `active` seam) rather than spinning
+  // rAF on a no-op `step`.
+  useAnimationFrameLoop(() => dispatch("tick"), GRAVITY_INTERVAL_MS, !state.gameOver);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -56,5 +64,14 @@ export default function GameContainer() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [dispatch]);
 
-  return <Board board={view} />;
+  return (
+    <div className="relative">
+      <Board board={view} />
+      <GameOverlay
+        visible={state.gameOver}
+        score={state.score}
+        lines={state.lines}
+      />
+    </div>
+  );
 }
