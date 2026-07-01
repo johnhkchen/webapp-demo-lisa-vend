@@ -4,10 +4,11 @@ This project builds and deploys with **vinext** (Cloudflare's Vite-based, Next.j
 runtime) and ships to **Cloudflare Workers**. The committed deploy artifact is
 [`wrangler.jsonc`](../wrangler.jsonc) at the repo root.
 
-> **Out of scope for T-006-03-02.** This ticket commits the deploy artifact and documents the
-> authenticated deploy path. The **live, authenticated deploy** and the resulting
-> `*.workers.dev` **URL smoke-test are intentionally NOT performed here** — they require a
-> Cloudflare login and are the manual follow-up described below.
+> **Out of scope for T-006-03-02.** This ticket commits the deploy artifact **and** wires the
+> Cloudflare build (the `cloudflare()` plugin in `vite.config.ts` plus the deploy dependencies),
+> so `npx @vinext/cloudflare deploy --dry-run` passes. The only thing **not** done here is the
+> **live, authenticated deploy** and the resulting `*.workers.dev` **URL smoke-test** — those
+> require a Cloudflare login and are the manual follow-up described below.
 
 ## What `wrangler.jsonc` declares
 
@@ -33,27 +34,33 @@ provision. The artifact is self-contained — no placeholder KV namespace id to 
 2. **`wrangler` authenticated** — either `npx wrangler login` (interactive) or a
    `CLOUDFLARE_API_TOKEN` environment variable with Workers deploy permission.
 
-## One-time deploy wiring (login-gated follow-up — not done in this ticket)
+## Deploy wiring (already done in this ticket)
 
-The committed `wrangler.jsonc` is the declarative artifact, but a real `vinext deploy` also needs
-the Cloudflare build wiring (a cloudflare plugin in `vite.config.ts` and the deploy dependencies).
-Add it with vinext's own initializer, matching the options this artifact was generated with:
+The Cloudflare build wiring is committed, so no setup step is needed before deploying. It was
+generated with vinext's own initializer:
 
 ```bash
 npx vinext init --platform=cloudflare --data-cache=none --image-optimization=none
 ```
 
-This:
-- installs `@cloudflare/vite-plugin`, `@vinext/cloudflare`, and `wrangler`;
-- injects the Cloudflare plugin into `vite.config.ts`;
-- **detects the existing `wrangler.jsonc` and does not overwrite it.**
+which:
+- added `@cloudflare/vite-plugin`, `@vinext/cloudflare`, and `wrangler` to `devDependencies`;
+- injected the `cloudflare()` plugin into `vite.config.ts`;
+- **detected the existing `wrangler.jsonc` and left it byte-for-byte unchanged.**
 
 > In a non-interactive/agent environment, the `--platform`, `--data-cache`, and
-> `--image-optimization` flags are **required** (vinext refuses to prompt).
+> `--image-optimization` flags are **required** (vinext refuses to prompt). To re-run it (e.g. on
+> a vinext upgrade), use the same flags; it is idempotent and will not overwrite `wrangler.jsonc`.
+
+Verify the setup at any time without a Cloudflare login:
+
+```bash
+npx @vinext/cloudflare deploy --dry-run   # "Dry run complete. No build or deploy performed."
+```
 
 ## Deploy
 
-Once the wiring above is in place and `wrangler` is authenticated:
+The wiring is already committed, so once `wrangler` is authenticated this is a single command:
 
 ```bash
 npx @vinext/cloudflare deploy          # canonical: builds with Vite, deploys via wrangler
@@ -65,8 +72,8 @@ Notes:
   `@vinext/cloudflare`; it will be removed in a future release. Prefer the `npx @vinext/cloudflare
   deploy` form above.
 - `--dry-run` validates that the wrangler file, the deploy dependencies, and the cloudflare vite
-  plugin are all present; it will error with "Run `vinext init --platform=cloudflare` first" if the
-  wiring step above has not been run.
+  plugin are all present (it currently passes for this repo). It would error with "Run `vinext init
+  --platform=cloudflare` first" only if that wiring were removed.
 
 ## How `wrangler.jsonc` was generated
 
