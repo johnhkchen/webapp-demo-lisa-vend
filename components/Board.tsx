@@ -1,11 +1,13 @@
+import Cell from "@/components/Cell";
 import { COLS, ROWS } from "@/lib/constants";
 
 /**
- * Placeholder Tetris board — a static CSS grid of empty cell divs.
+ * Placeholder Tetris board — a static CSS grid composed of empty `Cell` components.
  *
- * Deliberately trivial: no props, no state, no game logic. It proves the chosen
- * DOM/CSS-grid render approach (over canvas) and that Tailwind applies. The real,
- * stateful board lands in a later playability epic, which replaces this body.
+ * Deliberately trivial: no props, no state, no game logic. It owns the grid *container*
+ * (template from COLS/ROWS, sizing, chrome) and renders one `Cell` per position, proving
+ * the chosen DOM/CSS-grid render approach (over canvas) and that Tailwind applies. The
+ * real, stateful board lands in a later playability epic, which gives `Cell` its state.
  */
 export default function Board() {
   const cells = Array.from({ length: COLS * ROWS });
@@ -22,10 +24,7 @@ export default function Board() {
       }}
     >
       {cells.map((_, i) => (
-        <div
-          key={i}
-          className="rounded-[2px] bg-white/5 ring-1 ring-inset ring-white/5"
-        />
+        <Cell key={i} />
       ))}
     </div>
   );
