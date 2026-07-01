@@ -9,10 +9,11 @@
  * `overlayPiece`. No game rules are reimplemented here: the state comes from the core and the
  * overlay reuses the core's cell accessor.
  *
- * Scope (this ticket): keyboard move/rotate is now wired — the hook captures the state setter and
- * exposes a stable `dispatch(input)` that runs the pure core reducer (`step`). There is still no
- * `requestAnimationFrame` gravity loop and no soft/hard-drop; those are later tickets that will
- * hang off this same `dispatch`.
+ * Scope: the hook captures the state setter and exposes a stable `dispatch(input)` that runs the
+ * pure core reducer (`step`). Every player intent — move/rotate, soft-drop, and hard-drop — flows
+ * through this one `dispatch`; because it is generic over the core `Input`, adding the drop inputs
+ * (T-003-03-02) needed no change here. Gravity is driven by a `requestAnimationFrame` loop in the
+ * container dispatching `"tick"`; this hook owns only the state + dispatch seam.
  */
 
 import { useCallback, useMemo, useState } from "react";

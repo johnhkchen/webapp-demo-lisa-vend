@@ -102,8 +102,52 @@ describe("GameContainer", () => {
     const { container } = render(<GameContainer />);
     const before = filledCoords(container);
     fireEvent.keyDown(window, { key: "Enter" });
-    fireEvent.keyDown(window, { key: "ArrowDown" }); // reserved for the soft-drop ticket
+    fireEvent.keyDown(window, { key: "a" }); // unmapped letter
     expect(filledCoords(container)).toEqual(before);
+  });
+
+  it("ArrowDown soft-drops the active piece one row (accelerated descent)", () => {
+    const { container } = render(<GameContainer />);
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(filledCoords(container)).toEqual(expectedAfter("softDrop"));
+  });
+
+  it("Space hard-drops: the piece falls to the bottom, locks, and a fresh piece spawns", () => {
+    const { container } = render(<GameContainer />);
+    fireEvent.keyDown(window, { key: " " });
+    expect(filledCoords(container)).toEqual(expectedAfter("hardDrop"));
+
+    // Cross-check the ground truth: exactly four cells settled at the very bottom row.
+    const dropped = step(createInitialState(DEFAULT_SEED), "hardDrop");
+    const settled = dropped.board
+      .flatMap((row, y) => row.map((c, x) => ({ c, x, y })))
+      .filter(({ c }) => c !== null);
+    expect(settled).toHaveLength(4);
+    expect(Math.max(...settled.map((s) => s.y))).toBe(ROWS - 1);
+  });
+
+  it("held Space fires exactly once — OS auto-repeat does not machine-gun pieces", () => {
+    const { container } = render(<GameContainer />);
+    fireEvent.keyDown(window, { key: " " }); // first press: one piece drops + locks
+    fireEvent.keyDown(window, { key: " ", repeat: true }); // auto-repeat: must be ignored
+    fireEvent.keyDown(window, { key: " ", repeat: true });
+
+    // Exactly one hard-drop happened: 4 settled cells + 4 for the freshly spawned active = 8 filled.
+    const filled = cells(container).filter((el) => el.dataset.cell !== "empty").length;
+    expect(filled).toBe(8);
+    expect(filledCoords(container)).toEqual(expectedAfter("hardDrop"));
+  });
+
+  it("AC: a stranger can play spawn → game-over with the keyboard alone (Space only)", () => {
+    render(<GameContainer />);
+    // Repeatedly hard-drop with fresh presses (never a repeat). Bounded well above the ~ROWS
+    // pieces needed to top out so a bug can't hang the test.
+    for (let i = 0; i < 200 && !screen.queryByRole("alert"); i++) {
+      fireEvent.keyDown(window, { key: " " });
+    }
+    const alert = screen.queryByRole("alert");
+    expect(alert).not.toBeNull();
+    expect(alert!.textContent).toMatch(/game over/i);
   });
 
   it("removes its keydown listener on unmount", () => {

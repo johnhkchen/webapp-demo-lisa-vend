@@ -11,9 +11,11 @@
  *
  * Gravity: a `requestAnimationFrame` loop (`useAnimationFrameLoop`) dispatches one `"tick"` per
  * `GRAVITY_INTERVAL_MS`, so the piece descends, locks, and respawns on its own with no input
- * (T-003-02-01). Keyboard scope is move (left/right) and rotate (CW/CCW); soft/hard-drop keys
- * (T-003-03-02) arrive later and hang off the same `dispatch` — `ArrowDown` and the drop key are
- * intentionally absent from the map here.
+ * (T-003-02-01). Keyboard scope is move (left/right), rotate (CW/CCW), soft-drop (`ArrowDown`) and
+ * hard-drop (Space) — all hanging off the same `dispatch` (T-003-03-02). Soft-drop rides OS key
+ * auto-repeat like the move keys (hold = keep dropping, layered on top of gravity); hard-drop is
+ * edge-triggered — a held Space must not lock+spawn on every repeat, so `event.repeat` is ignored
+ * for it.
  *
  * Game-over (T-003-02-02): the core sets `state.gameOver` when a fresh spawn tops out. We gate the
  * gravity loop on `!gameOver` so the tick actually *halts* (not merely no-ops), and render a
@@ -30,9 +32,11 @@ import { useAnimationFrameLoop } from "@/components/useAnimationFrameLoop";
 import type { Input } from "@/lib/game";
 
 /**
- * Keyboard → core `Input`. Keys absent here are ignored (browser shortcuts stay live, and the
- * drop keys are deferred to T-003-03-02). `ArrowUp`/`x` rotate clockwise, `z` counter-clockwise —
- * the conventional web-Tetris defaults.
+ * Keyboard → core `Input`. Keys absent here are ignored (browser shortcuts stay live).
+ * `ArrowUp`/`x` rotate clockwise, `z` counter-clockwise — the conventional web-Tetris defaults.
+ * `ArrowDown` is soft-drop (accelerated descent) and `" "` (Space) is hard-drop (instant drop +
+ * lock). Soft-drop is fine to auto-repeat while held; hard-drop is guarded against auto-repeat in
+ * the handler (see `onKeyDown`).
  */
 const KEY_TO_INPUT: Record<string, Input> = {
   ArrowLeft: "left",
@@ -42,6 +46,8 @@ const KEY_TO_INPUT: Record<string, Input> = {
   X: "rotateCW",
   z: "rotateCCW",
   Z: "rotateCCW",
+  ArrowDown: "softDrop",
+  " ": "hardDrop",
 };
 
 export default function GameContainer() {
@@ -56,7 +62,14 @@ export default function GameContainer() {
     function onKeyDown(event: KeyboardEvent) {
       const input = KEY_TO_INPUT[event.key];
       if (!input) return; // not ours — leave browser shortcuts and unmapped keys alone
-      event.preventDefault(); // consumed keys (arrows) would otherwise scroll the page
+      // Hard-drop is edge-triggered: a held key fires OS auto-repeat, and each repeat would
+      // drop+lock+spawn another piece — machine-gunning through the stack. Consume the key
+      // (preventDefault) but drop the repeats. Soft-drop/move keys keep their auto-repeat.
+      if (input === "hardDrop" && event.repeat) {
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault(); // consumed keys (arrows, space) would otherwise scroll the page
       dispatch(input);
     }
 
