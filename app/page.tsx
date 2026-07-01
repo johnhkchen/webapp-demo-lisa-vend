@@ -1,6 +1,4 @@
-import Board from "@/components/Board";
-import { emptyBoard } from "@/lib/board";
-import { COLS, ROWS } from "@/lib/constants";
+import GameContainer from "@/components/GameContainer";
 
 export default function Home() {
   return (
@@ -9,9 +7,9 @@ export default function Home() {
         <h1 className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-6xl">
           TETRIS
         </h1>
-        <p className="mt-2 text-sm text-white/50">Scaffold — placeholder board</p>
+        <p className="mt-2 text-sm text-white/50">Live board — starting position</p>
       </header>
-      <Board board={emptyBoard(COLS, ROWS)} />
+      <GameContainer />
     </main>
   );
 }
