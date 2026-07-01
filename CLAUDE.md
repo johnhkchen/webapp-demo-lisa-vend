@@ -3,8 +3,9 @@
 ## Project
 
 webapp-demo-lisa-vend — a visually stunning, single-player **Tetris** game built with Next.js
-(App Router) and deployed to Vercel. A fast-payoff demo of the vend→lisa drive. See
-`docs/knowledge/vision.md` for scope and `docs/knowledge/charter.md` for the value function.
+(App Router) and deployed to **Cloudflare Workers** via vinext (see `docs/deploy.md`). A
+fast-payoff demo of the vend→lisa drive. See `docs/knowledge/vision.md` for scope and
+`docs/knowledge/charter.md` for the value function.
 
 ## Stack
 
@@ -26,7 +27,9 @@ npm run start    # serve the production build
 ```
 
 After the vinext migration, `dev`/`build`/`start` run through vinext (Vite), and deploy is
-`vinext deploy` to Cloudflare Workers (requires `wrangler` auth / a Cloudflare login).
+`npx @vinext/cloudflare deploy` to Cloudflare Workers (requires `wrangler` auth / a Cloudflare
+login). The committed `wrangler.jsonc` is the deploy artifact; see `docs/deploy.md` for the full
+authenticated deploy runbook.
 
 ## Source layout (target)
 
