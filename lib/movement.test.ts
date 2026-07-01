@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { spawnPiece, tryMove, moveLeft, moveRight, softDrop } from "./movement";
+import { spawnPiece, tryMove, moveLeft, moveRight, softDrop, hardDrop } from "./movement";
 import { pieceCells } from "./collision";
 import { collides } from "./collision";
 import { emptyBoard } from "./board";
@@ -185,5 +185,65 @@ describe("tryMove and the moveLeft/moveRight/softDrop wrappers", () => {
       pieceCells("S", a.position, a.rotation).map((c) => ({ x: c.x + 1, y: c.y })),
     );
     expect(asSet(pieceCells("S", b.position, b.rotation))).toEqual(shifted);
+  });
+});
+
+describe("hardDrop", () => {
+  it("drops a spawned piece to the floor on an empty board", () => {
+    const board = emptyBoard(10, 20);
+    const piece = spawnPiece("O", 10); // box 2 → occupies two rows
+    const dropped = hardDrop(board, piece);
+    const maxY = Math.max(
+      ...pieceCells(dropped.type, dropped.position, dropped.rotation).map((c) => c.y),
+    );
+    expect(maxY).toBe(20 - 1); // lowest cell rests on the last row
+    // column and rotation are untouched — hard-drop only translates down
+    expect(dropped.position.x).toBe(piece.position.x);
+    expect(dropped.rotation).toBe(piece.rotation);
+  });
+
+  it("rests directly on top of a settled stack", () => {
+    // Settle a floor of cells across cols 0,1 at rows 18,19; an O at x=0 must rest above them.
+    const board = settle(
+      emptyBoard(10, 20),
+      [
+        { x: 0, y: 18 },
+        { x: 1, y: 18 },
+        { x: 0, y: 19 },
+        { x: 1, y: 19 },
+      ],
+      "I",
+    );
+    const piece: Piece = { type: "O", rotation: 0, position: { x: 0, y: 0 } };
+    const dropped = hardDrop(board, piece);
+    // O occupies rows y,y+1; resting on top of row 18 means y+1 === 17 → y === 16
+    expect(dropped.position).toEqual({ x: 0, y: 16 });
+  });
+
+  it("is a no-op (same reference) when the piece is already resting", () => {
+    const board = emptyBoard(10, 20);
+    // O at y=18 already rests on the floor (rows 18,19).
+    const piece: Piece = { type: "O", rotation: 0, position: { x: 0, y: 18 } };
+    const dropped = hardDrop(board, piece);
+    expect(dropped).toBe(piece);
+  });
+
+  it("does not mutate the input piece or board", () => {
+    const board = emptyBoard(10, 20);
+    const piece = spawnPiece("T", 10);
+    const pieceSnap = JSON.stringify(piece);
+    const boardSnap = JSON.stringify(board);
+    hardDrop(board, piece);
+    expect(JSON.stringify(piece)).toBe(pieceSnap);
+    expect(JSON.stringify(board)).toBe(boardSnap);
+  });
+
+  it("agrees with iterated softDrop until it can fall no further", () => {
+    const board = emptyBoard(10, 20);
+    const piece = spawnPiece("J", 10);
+    // Independently drive softDrop to exhaustion; hardDrop must reach the same placement.
+    let cur = piece;
+    for (let next = softDrop(board, cur); next !== cur; next = softDrop(board, cur)) cur = next;
+    expect(hardDrop(board, piece)).toEqual(cur);
   });
 });

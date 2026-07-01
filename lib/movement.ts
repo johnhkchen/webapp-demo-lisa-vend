@@ -13,8 +13,11 @@
  *
  * Scope boundary: translation + spawn only. Rotation (with SRS wall kicks) is T-002-02-03;
  * automatic gravity and lock-on-landing are T-002-02-04 — soft-drop here is a *player-initiated*
- * single downward step and does NOT merge/lock a landed piece. The 7-bag (`lib/bag.ts`) is the
- * *source* of the id handed to `spawnPiece`; this module never touches the bag or any queue.
+ * single downward step and does NOT merge/lock a landed piece. `hardDrop` likewise computes the
+ * final resting *placement* only (repeated soft-drops) and does NOT lock — committing the lock is
+ * the reducer's job (`lib/game.ts` composes `hardDrop` with the gravity lock pipeline). The 7-bag
+ * (`lib/bag.ts`) is the *source* of the id handed to `spawnPiece`; this module never touches the
+ * bag or any queue.
  */
 
 import type { Board, Piece, TetrominoType } from "./types";
@@ -70,4 +73,19 @@ export function moveRight(board: Board, piece: Piece): Piece {
  */
 export function softDrop(board: Board, piece: Piece): Piece {
   return tryMove(board, piece, 0, 1);
+}
+
+/**
+ * Hard-drop *placement*: translate `piece` straight down until the cell below is blocked, and
+ * return the piece resting at that lowest legal position. Pure translation — like `softDrop` it
+ * does NOT lock/merge the piece into the board; the reducer commits the lock. Terminates on
+ * `softDrop`'s same-reference no-op contract, so an already-resting piece returns the **input
+ * `piece` reference unchanged**. Bounded by board height. Never mutates `board` or `piece`.
+ */
+export function hardDrop(board: Board, piece: Piece): Piece {
+  let cur = piece;
+  for (let next = softDrop(board, cur); next !== cur; next = softDrop(board, cur)) {
+    cur = next;
+  }
+  return cur;
 }
