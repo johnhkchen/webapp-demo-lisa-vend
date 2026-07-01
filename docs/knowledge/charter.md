@@ -12,8 +12,8 @@ admitted epic must advance at least one; references resolve to these IDs:
   game-over — outranks everything. Without it there is no demo.
 - **P2 — The wow (visual impact).** Neon/glass theme, smooth 60fps animation, line-clear
   juice. The *point* of this demo, not optional trim. Ranks just under core playability.
-- **P3 — Shippability.** A clean Vercel deploy with a shareable public URL and a passing
-  production build. A game nobody can reach isn't a demo.
+- **P3 — Shippability.** A clean deploy to **Cloudflare Workers** via **vinext** (`vinext deploy`)
+  with a shareable public URL and a passing production build. A game nobody can reach isn't a demo.
 - **P4 — Feel.** Scoring, levels, next-piece preview, hold, ghost piece, localStorage
   high-score — the touches that make it satisfying to keep playing. Pulled in descending
   payoff order.

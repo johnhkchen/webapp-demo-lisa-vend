@@ -14,7 +14,8 @@ It is a demo — its worth is measured by how quickly it becomes something you c
 - A deliberately beautiful presentation layer: neon/glass aesthetic, smooth 60fps animation,
   satisfying line-clear feedback ("juice"). The look is a first-class deliverable, not polish
   deferred to "later."
-- Deployed and reachable at a public Vercel URL.
+- Deployed and reachable at a public URL on **Cloudflare Workers**, via **vinext** (Cloudflare's
+  Vite-based Next.js-compatible runtime) — `vinext deploy`.
 
 ## What it is not
 - Not multiplayer, not an account system, not a backend/database.
@@ -22,5 +23,5 @@ It is a demo — its worth is measured by how quickly it becomes something you c
 - Not a platform for arbitrary future features — scope stays demo-tight.
 
 ## The bar
-Done means: a stranger can open the Vercel URL, understand it in three seconds, play a full
-game with keyboard controls, and want to send it to a friend.
+Done means: a stranger can open the public Cloudflare Workers URL, understand it in three
+seconds, play a full game with keyboard controls, and want to send it to a friend.

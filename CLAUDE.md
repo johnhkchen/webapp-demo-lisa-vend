@@ -10,8 +10,9 @@ webapp-demo-lisa-vend — a visually stunning, single-player **Tetris** game bui
 
 - Next.js (App Router) + React + TypeScript
 - Client-side game loop (no backend); state in React + `requestAnimationFrame`
-- Styling: CSS Modules / Tailwind (whichever the scaffold ticket chooses) with a neon/glass theme
-- Deploy target: Vercel
+- Styling: Tailwind v4 (CSS-first `@import "tailwindcss"`) with a neon/glass theme
+- Build/runtime + deploy: **vinext** (Cloudflare's Vite-based Next.js-compatible runtime),
+  deployed to **Cloudflare Workers** via `vinext deploy` (generates `wrangler.jsonc`)
 
 ## Commands
 
@@ -24,7 +25,8 @@ npm run lint     # lint
 npm run start    # serve the production build
 ```
 
-Deploy is via the Vercel CLI / Git integration (`vercel --prod`).
+After the vinext migration, `dev`/`build`/`start` run through vinext (Vite), and deploy is
+`vinext deploy` to Cloudflare Workers (requires `wrangler` auth / a Cloudflare login).
 
 ## Source layout (target)
 
