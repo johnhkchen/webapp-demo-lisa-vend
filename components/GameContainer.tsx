@@ -1,18 +1,54 @@
 "use client";
 
 /**
- * The single client island: it wires the `useGame` hook to the props-driven `Board`.
+ * The single client island: it wires the `useGame` hook to the props-driven `Board` and routes
+ * the keyboard into the pure game core.
  *
  * `page.tsx` stays a server component and renders this; everything stateful lives behind this one
- * `"use client"` boundary. It holds no logic beyond handing the hook's composed view (settled board
- * + active piece overlaid) to `Board`, which paints it. Input and the gravity loop arrive in a
- * later ticket and will hang off the same hook.
+ * `"use client"` boundary. It holds no game rules — it hands the hook's composed view (settled
+ * board + active piece overlaid) to `Board`, and translates keydown events into core `Input`s via
+ * `dispatch`. A window-level listener means the player never has to click to focus.
+ *
+ * Scope: move (left/right) and rotate (CW/CCW) only. The rAF gravity loop (T-003-02-01) and
+ * soft/hard-drop keys (T-003-03-02) arrive later and hang off the same `dispatch`; `ArrowDown`
+ * and the drop key are intentionally absent from the map here.
  */
+
+import { useEffect } from "react";
 
 import Board from "@/components/Board";
 import { useGame } from "@/components/useGame";
+import type { Input } from "@/lib/game";
+
+/**
+ * Keyboard → core `Input`. Keys absent here are ignored (browser shortcuts stay live, and the
+ * drop keys are deferred to T-003-03-02). `ArrowUp`/`x` rotate clockwise, `z` counter-clockwise —
+ * the conventional web-Tetris defaults.
+ */
+const KEY_TO_INPUT: Record<string, Input> = {
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  ArrowUp: "rotateCW",
+  x: "rotateCW",
+  X: "rotateCW",
+  z: "rotateCCW",
+  Z: "rotateCCW",
+};
 
 export default function GameContainer() {
-  const { view } = useGame();
+  const { view, dispatch } = useGame();
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const input = KEY_TO_INPUT[event.key];
+      if (!input) return; // not ours — leave browser shortcuts and unmapped keys alone
+      event.preventDefault(); // consumed keys (arrows) would otherwise scroll the page
+      dispatch(input);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [dispatch]);
+
   return <Board board={view} />;
 }
