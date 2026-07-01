@@ -13,6 +13,35 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Enforce the app/components/lib track boundary: lib/ holds pure, framework-free
+  // game logic (see CLAUDE.md). Forbid React/Next imports there so rendering and
+  // logic stay on separable tracks that lisa can build in parallel without collisions.
+  {
+    files: ["lib/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "react",
+                "react-dom",
+                "next",
+                "react/*",
+                "react-dom/*",
+                "next/*",
+                "@next/*",
+              ],
+              message:
+                "lib/ must stay pure and framework-free (see CLAUDE.md). " +
+                "Keep React/Next imports in components/ and app/.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
