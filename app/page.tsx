@@ -1,4 +1,6 @@
 import Board from "@/components/Board";
+import { emptyBoard } from "@/lib/board";
+import { COLS, ROWS } from "@/lib/constants";
 
 export default function Home() {
   return (
@@ -9,7 +11,7 @@ export default function Home() {
         </h1>
         <p className="mt-2 text-sm text-white/50">Scaffold — placeholder board</p>
       </header>
-      <Board />
+      <Board board={emptyBoard(COLS, ROWS)} />
     </main>
   );
 }
