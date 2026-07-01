@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/*
+ * Base scaffold styles. The neon/glass theme (tokens, glow, animation) is a later
+ * epic — this only establishes a dark, full-height canvas so downstream visual work
+ * has ground to build on.
+ */
+
+:root {
+  --background: #0a0a0f;
+  --foreground: #ededf2;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
