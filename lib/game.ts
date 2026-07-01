@@ -27,17 +27,19 @@
  * seed and input sequence, not strict value-purity of the embedded id stream; making the RNG/bag
  * fully serializable (for saves/replays) is a deliberate later refactor.
  *
- * Scope boundary: no hard-drop, no lock-delay/timing, no soft-drop score bonus (soft-drop is
- * currently an alias of a gravity tick), no combo/back-to-back/T-spin scoring, and no level
- * progression — `level` is carried into `scoreFor` but not advanced here. All of these are later
- * tickets. This module imports nothing from React/Next and touches no other file.
+ * Scope boundary: no lock-delay/timing, no drop-distance score bonus (neither soft- nor hard-drop
+ * awards per-cell points yet — soft-drop is still an alias of a gravity tick, and hard-drop only
+ * earns the line-clear award any lock grants), no combo/back-to-back/T-spin scoring, and no level
+ * progression — `level` is carried into `scoreFor` but not advanced here. Hard-drop *is* wired
+ * (`"hardDrop"` input → drop to rest → the lock pipeline). All the rest are later tickets. This
+ * module imports nothing from React/Next and touches no other file.
  */
 
 import type { Board, Piece } from "./types";
 import { COLS, ROWS } from "./constants";
 import { emptyBoard } from "./board";
 import { createSevenBag, type SevenBag } from "./bag";
-import { spawnPiece, moveLeft, moveRight } from "./movement";
+import { spawnPiece, moveLeft, moveRight, hardDrop } from "./movement";
 import { rotateCW, rotateCCW } from "./rotation";
 import { applyGravity } from "./gravity";
 import { clearLines } from "./line-clear";
@@ -63,9 +65,11 @@ export interface GameState {
 /**
  * A player or timer intent handed to `step`. Lateral intents (`left`/`right`/`rotateCW`/
  * `rotateCCW`) transform only the active piece; the descent intents (`softDrop`, `tick`) run one
- * gravity step and may trigger the lock → clear → score → spawn pipeline. `softDrop` and `tick`
- * currently behave identically (both a single gravity step); they are kept distinct so a later
- * ticket can give soft-drop its own scoring/timing without changing the input alphabet.
+ * gravity step and may trigger the lock → clear → score → spawn pipeline. `hardDrop` drops the
+ * active piece straight to its resting position and then runs that same pipeline in one step
+ * (instant drop + lock). `softDrop` and `tick` currently behave identically (both a single gravity
+ * step); they are kept distinct so a later ticket can give soft-drop its own scoring/timing without
+ * changing the input alphabet.
  */
 export type Input =
   | "left"
@@ -73,6 +77,7 @@ export type Input =
   | "rotateCW"
   | "rotateCCW"
   | "softDrop"
+  | "hardDrop"
   | "tick";
 
 /**
@@ -135,6 +140,12 @@ export function step(state: GameState, input: Input): GameState {
       return { ...state, active: rotateCW(state.board, state.active) };
     case "rotateCCW":
       return { ...state, active: rotateCCW(state.board, state.active) };
+    case "hardDrop":
+      // Drop straight to the resting position, then run the ordinary lock pipeline: with the
+      // piece already at rest, `descend`'s `applyGravity` locks it immediately (instant drop +
+      // lock + clear + score + spawn), so hard-drop reuses the exact gravity path with no
+      // duplicated lock logic.
+      return descend({ ...state, active: hardDrop(state.board, state.active) });
     case "softDrop":
     case "tick":
       return descend(state);
