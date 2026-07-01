@@ -39,6 +39,30 @@
   --color-piece-l: oklch(0.75 0.19 55);  /* orange */
 }
 
+/*
+ * Glassmorphic panel utility (E-004). One class that makes a surface read as frosted glass —
+ * backdrop blur + saturate, translucent fill, hairline border, depth shadow + lit top rim — so
+ * scoreboard/preview/hold panels apply `.glass` instead of hand-rolling CSS.
+ *
+ * Defined in `@layer components` (not `@utility`) on purpose: Tailwind v4 tree-shakes custom
+ * `@utility` classes when no scanned source consumes them, and E-004's hard boundary forbids a
+ * component consumer — so a `@utility glass` would vanish from the production build. `@layer
+ * components` content is emitted unconditionally (verified) AND sits below the `utilities` layer,
+ * so a consumer's utilities (rounded-*, p-*, bg-*) still override individual glass properties
+ * when composed. Owns material only — no radius/padding/size; the consumer composes those.
+ */
+@layer components {
+  .glass {
+    background-color: color-mix(in oklab, white 6%, transparent);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid color-mix(in oklab, white 14%, transparent);
+    box-shadow:
+      0 8px 32px rgb(0 0 0 / 0.37),
+      inset 0 1px 0 color-mix(in oklab, white 12%, transparent);
+  }
+}
+
 html,
 body {
   height: 100%;
