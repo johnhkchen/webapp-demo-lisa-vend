@@ -117,6 +117,49 @@
   }
 }
 
+/*
+ * Row-clear flash animation (E-004). A named `@keyframes flash` (neon-tinted bloom -> fade + slight
+ * collapse) plus a `.flash` utility that plays it ONCE. The later line-clear juice applies `.flash`
+ * to cleared rows and gets consistent timing, instead of hand-rolling a keyframe per component.
+ *
+ * Two decisions worth not re-deriving:
+ *  - NOT `@theme { --animate-flash; @keyframes }`: that path tree-shakes both the `animate-flash`
+ *    utility and its keyframes unless a scanned source uses the class, and E-004 forbids a consumer
+ *    (same trap `.glass`/`.glow`/the piece tokens hit). So the keyframes are bare top-level CSS and
+ *    the class lives in `@layer components`, which emits unconditionally and sits below `utilities`.
+ *  - `.flash` sets `animation: flash …`, i.e. it REFERENCES `flash` by name — that reference is what
+ *    keeps the `@keyframes` reachable/emitted even under unused-keyframe pruning.
+ * Tint/duration/easing/bloom are `var(--flash-*, default)` so a consumer can retint/retime per call
+ * without a new class; a cleared row is mixed-piece, so the default tint is a neutral bright neon.
+ */
+@keyframes flash {
+  0% {
+    opacity: 1;
+    transform: scaleY(1);
+    background-color: var(--flash-tint, oklch(0.97 0.06 200));
+    box-shadow: 0 0 0 0 transparent;
+  }
+  35% {
+    opacity: 1;
+    transform: scaleY(1);
+    background-color: var(--flash-tint, oklch(0.97 0.06 200));
+    box-shadow:
+      0 0 var(--flash-bloom-1, 8px) var(--flash-tint, oklch(0.97 0.06 200)),
+      0 0 var(--flash-bloom-2, 28px) var(--flash-tint, oklch(0.97 0.06 200));
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(0.85);
+    box-shadow: 0 0 var(--flash-bloom-2, 28px) transparent;
+  }
+}
+
+@layer components {
+  .flash {
+    animation: flash var(--flash-duration, 500ms) var(--flash-ease, ease-out) both;
+  }
+}
+
 html,
 body {
   height: 100%;
