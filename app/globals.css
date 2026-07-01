@@ -21,6 +21,24 @@
   --color-foreground: var(--foreground);
 }
 
+/*
+ * Per-tetromino neon palette (E-004). One signature hue per piece: I/O/T/S/Z/J/L.
+ * `static` forces these into the build even before any component consumes them — Tailwind v4
+ * tree-shakes unused theme vars, and this vocabulary is defined ahead of its Cell/Board
+ * consumers (a later rendering epic). Emits --color-piece-* custom properties plus the
+ * bg-/text-/border-/ring-piece-* utility family. oklch keeps all seven at a similar perceived
+ * brightness while each holds high chroma, so they read as one coherent neon set.
+ */
+@theme static {
+  --color-piece-i: oklch(0.85 0.15 195); /* cyan   */
+  --color-piece-o: oklch(0.87 0.17 100); /* yellow */
+  --color-piece-t: oklch(0.7 0.2 310);   /* purple */
+  --color-piece-s: oklch(0.85 0.21 145); /* green  */
+  --color-piece-z: oklch(0.68 0.23 25);  /* red    */
+  --color-piece-j: oklch(0.62 0.2 260);  /* blue   */
+  --color-piece-l: oklch(0.75 0.19 55);  /* orange */
+}
+
 html,
 body {
   height: 100%;
