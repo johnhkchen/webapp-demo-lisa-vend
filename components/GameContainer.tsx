@@ -9,15 +9,18 @@
  * board + active piece overlaid) to `Board`, and translates keydown events into core `Input`s via
  * `dispatch`. A window-level listener means the player never has to click to focus.
  *
- * Scope: move (left/right) and rotate (CW/CCW) only. The rAF gravity loop (T-003-02-01) and
- * soft/hard-drop keys (T-003-03-02) arrive later and hang off the same `dispatch`; `ArrowDown`
- * and the drop key are intentionally absent from the map here.
+ * Gravity: a `requestAnimationFrame` loop (`useAnimationFrameLoop`) dispatches one `"tick"` per
+ * `GRAVITY_INTERVAL_MS`, so the piece descends, locks, and respawns on its own with no input
+ * (T-003-02-01). Keyboard scope is move (left/right) and rotate (CW/CCW); soft/hard-drop keys
+ * (T-003-03-02) arrive later and hang off the same `dispatch` — `ArrowDown` and the drop key are
+ * intentionally absent from the map here.
  */
 
 import { useEffect } from "react";
 
 import Board from "@/components/Board";
-import { useGame } from "@/components/useGame";
+import { useGame, GRAVITY_INTERVAL_MS } from "@/components/useGame";
+import { useAnimationFrameLoop } from "@/components/useAnimationFrameLoop";
 import type { Input } from "@/lib/game";
 
 /**
@@ -37,6 +40,9 @@ const KEY_TO_INPUT: Record<string, Input> = {
 
 export default function GameContainer() {
   const { view, dispatch } = useGame();
+
+  // Automatic gravity: one core "tick" (descend → lock → clear → spawn) per interval, no input.
+  useAnimationFrameLoop(() => dispatch("tick"), GRAVITY_INTERVAL_MS);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

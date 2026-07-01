@@ -30,6 +30,18 @@ import { overlayPiece } from "@/lib/overlay";
 export const DEFAULT_SEED = 0x5eed;
 
 /**
+ * Gravity cadence in milliseconds: how long the active piece rests before it falls one row under
+ * automatic gravity. Consumed by the client island's `requestAnimationFrame` loop
+ * (`useAnimationFrameLoop`), which dispatches one `"tick"` per interval. ~800ms is the classic
+ * level-1 feel — slow enough to react, fast enough to see descend → lock → spawn within seconds.
+ *
+ * Lives here in the seam, not in `lib/constants.ts`: timing/feel is deliberately *not* part of the
+ * pure core (see `lib/gravity.ts`, which calls lock-delay/timing "a feel/timing concern, not pure
+ * logic"). Level-scaled speed-up is a later epic; this is the single fixed rate for now.
+ */
+export const GRAVITY_INTERVAL_MS = 800;
+
+/**
  * What `useGame` returns: the raw core `state`, the render-ready composed `view`, and `dispatch`
  * to feed a player/timer `Input` through the core reducer.
  */
