@@ -9,15 +9,16 @@
  * `overlayPiece`. No game rules are reimplemented here: the state comes from the core and the
  * overlay reuses the core's cell accessor.
  *
- * Scope (this ticket): a static starting frame only. There is no `requestAnimationFrame` gravity
- * loop and no input dispatch yet — those are a later ticket, which is why no setter is exposed. The
- * `seed` parameter and the returned `state` are the seams that ticket will consume.
+ * Scope (this ticket): keyboard move/rotate is now wired — the hook captures the state setter and
+ * exposes a stable `dispatch(input)` that runs the pure core reducer (`step`). There is still no
+ * `requestAnimationFrame` gravity loop and no soft/hard-drop; those are later tickets that will
+ * hang off this same `dispatch`.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { Board } from "@/lib/types";
-import { createInitialState, type GameState } from "@/lib/game";
+import { createInitialState, step, type GameState, type Input } from "@/lib/game";
 import { overlayPiece } from "@/lib/overlay";
 
 /**
@@ -28,18 +29,29 @@ import { overlayPiece } from "@/lib/overlay";
  */
 export const DEFAULT_SEED = 0x5eed;
 
-/** What `useGame` returns: the raw core `state` and the render-ready composed `view`. */
+/**
+ * What `useGame` returns: the raw core `state`, the render-ready composed `view`, and `dispatch`
+ * to feed a player/timer `Input` through the core reducer.
+ */
 export interface GameView {
   state: GameState;
   view: Board;
+  dispatch: (input: Input) => void;
 }
 
 /**
- * Hold a fresh game for `seed` and expose its composed view. The state is created lazily (once),
- * so the bag/spawn run a single time rather than on every render; the view is memoized on `state`.
+ * Hold a fresh game for `seed` and expose its composed view plus a `dispatch`. The state is
+ * created lazily (once), so the bag/spawn run a single time rather than on every render; the view
+ * is memoized on `state`. `dispatch` applies the pure `step` reducer via a functional state
+ * update, so it needs no `state` dependency and is referentially stable — a consumer can list it
+ * in an effect's deps without re-subscribing every render.
  */
 export function useGame(seed: number = DEFAULT_SEED): GameView {
-  const [state] = useState(() => createInitialState(seed));
+  const [state, setState] = useState(() => createInitialState(seed));
   const view = useMemo(() => overlayPiece(state.board, state.active), [state]);
-  return { state, view };
+  const dispatch = useCallback(
+    (input: Input) => setState((s) => step(s, input)),
+    [],
+  );
+  return { state, view, dispatch };
 }
