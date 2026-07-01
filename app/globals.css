@@ -160,6 +160,48 @@
   }
 }
 
+/*
+ * 60fps motion utilities (E-004). Compositor-only transitions: `.motion` transitions ONLY
+ * `transform` and `opacity` — the two properties the GPU compositor animates without triggering
+ * layout or paint — so any movement (piece shift/rotate/soft-drop) or state change (panel/overlay
+ * appear) animates at 60fps by applying ONE class instead of each component re-tuning `transition`.
+ *
+ * Shape (mirrors the `.glow` idiom): the transition geometry is written ONCE on the grouped
+ * selector; `.motion-fast` / `.motion-slow` only override `--motion-duration`. Duration and easing
+ * are `var(--motion-*, default)` knobs so a consumer retunes per call without a new class.
+ *
+ * `@layer components` (NOT `@utility` / `@theme { --transition-* }`) on purpose: Tailwind v4
+ * tree-shakes custom `@utility` classes and `@theme`-generated utilities with no scanned consumer,
+ * and E-004 forbids a component consumer — a `@utility motion` would vanish from the production
+ * build (the same trap `.glass`/`.glow`/`.flash` hit). Component-layer rules emit unconditionally
+ * AND sit below `utilities`, so a consumer's `transition-*`/`duration-*`/`ease-*` utilities compose.
+ *
+ * `transition-property` is restricted to `transform, opacity` — that restriction IS the 60fps
+ * guarantee: even if a consumer flips a paint/layout property in the same state change, only
+ * transform/opacity will TRANSITION (the rest snap), so no reflow-animation and no dropped frames.
+ *
+ * No `will-change`: baked into a shared always-on class it permanently pins a GPU layer per element
+ * (memory cost, can hurt perf) — the opposite of the intent. The property restriction already gives
+ * the compositor-only guarantee at zero cost; transient will-change is a per-call optimization the
+ * consuming render epic applies imperatively right before an animation, not part of this vocabulary.
+ */
+@layer components {
+  .motion,
+  .motion-fast,
+  .motion-slow {
+    transition-property: transform, opacity;
+    transition-duration: var(--motion-duration, 150ms);
+    transition-timing-function: var(--motion-ease, cubic-bezier(0.2, 0, 0, 1));
+  }
+
+  .motion-fast {
+    --motion-duration: 90ms;
+  }
+  .motion-slow {
+    --motion-duration: 260ms;
+  }
+}
+
 html,
 body {
   height: 100%;
