@@ -21,7 +21,7 @@
  * after teardown.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 /**
  * Invoke `onTick` about once per `intervalMs` of elapsed time while mounted and `active`.
@@ -36,7 +36,11 @@ export function useAnimationFrameLoop(
   active: boolean = true,
 ): void {
   const onTickRef = useRef(onTick);
-  onTickRef.current = onTick;
+  // Sync the latest callback after each commit (a layout effect, so it lands before the next
+  // frame fires) — not during render, which React forbids for refs.
+  useLayoutEffect(() => {
+    onTickRef.current = onTick;
+  });
 
   useEffect(() => {
     if (!active) return;
