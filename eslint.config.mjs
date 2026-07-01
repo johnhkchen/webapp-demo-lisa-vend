@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // vinext (Vite) build output — the App Router migration's analog of `.next/`.
+    // `vinext build` emits bundled/minified code to `dist/`; it is generated, never
+    // authored, so it must not be linted (T-006-02-02).
+    "dist/**",
   ]),
   // Enforce the app/components/lib track boundary: lib/ holds pure, framework-free
   // game logic (see CLAUDE.md). Forbid React/Next imports there so rendering and
