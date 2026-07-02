@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createInitialState, step, type GameState } from "./game";
+import { createInitialState, step, upcomingPieces, type GameState } from "./game";
 import { emptyBoard } from "./board";
 import { createSevenBag } from "./bag";
 import { pieceCells } from "./collision";
@@ -294,5 +294,50 @@ describe("game-over on spawn into an occupied top row (AC)", () => {
     expect(ended.gameOver).toBe(true);
     expect(step(ended, "left")).toBe(ended);
     expect(step(ended, "tick")).toBe(ended);
+  });
+});
+
+describe("upcomingPieces — read-only lookahead surfaced from the live bag", () => {
+  const N = 5;
+
+  it("equals the types of the next N spawned pieces (matches subsequent spawns)", () => {
+    const s = createInitialState(1);
+    const queue = upcomingPieces(s, N);
+
+    // hardDrop locks + spawns in one step, so each drop consumes exactly one bag id = one queue
+    // entry. On an empty board these stack at the floor and never top out within N drops.
+    const spawned: string[] = [];
+    let cur = s;
+    for (let i = 0; i < N; i++) {
+      cur = step(cur, "hardDrop");
+      expect(cur.gameOver).toBe(false);
+      spawned.push(cur.active.type);
+    }
+    expect(spawned).toEqual(queue);
+  });
+
+  it("is non-consuming: reading the queue does not advance the stream", () => {
+    const s = createInitialState(1);
+    const first = upcomingPieces(s, N);
+    const second = upcomingPieces(s, N);
+    expect(second).toEqual(first);
+
+    // The very next spawn is still queue[0] — peeking twice did not draw anything.
+    expect(step(s, "hardDrop").active.type).toBe(first[0]);
+  });
+
+  it("returns a fresh array the caller may mutate without corrupting the bag", () => {
+    const s = createInitialState(1);
+    const q = upcomingPieces(s, N);
+    q[0] = "I";
+    q.length = 0;
+    expect(upcomingPieces(s, N)).not.toEqual(q);
+    expect(upcomingPieces(s, N)).toHaveLength(N);
+  });
+
+  it("returns [] for n <= 0", () => {
+    const s = createInitialState(1);
+    expect(upcomingPieces(s, 0)).toEqual([]);
+    expect(upcomingPieces(s, -3)).toEqual([]);
   });
 });
