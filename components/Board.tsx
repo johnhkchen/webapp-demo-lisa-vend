@@ -85,7 +85,7 @@ export default function Board({
         <div
           key={flashKey}
           aria-hidden
-          className="pointer-events-none absolute inset-0 grid gap-px p-2"
+          className="pointer-events-none absolute inset-0 grid gap-px border border-transparent p-2"
           style={gridStyle}
         >
           {flashRows.map((y) => (
