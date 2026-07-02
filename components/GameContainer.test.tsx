@@ -41,7 +41,7 @@ function expectedAfter(...inputs: Input[]): string[] {
 
 describe("GameContainer", () => {
   it("renders the full ROWS×COLS starting grid", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     expect(cells(container)).toHaveLength(ROWS * COLS);
   });
 
@@ -50,12 +50,12 @@ describe("GameContainer", () => {
     // clear→flash mechanism itself is covered by useClearFlash + Board.flash unit tests; the
     // default-seed core never completes a line through play (see the clear test below), so this
     // guards only that the wiring stays dark when idle.
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     expect(container.querySelectorAll("[data-flash-row]")).toHaveLength(0);
   });
 
   it("overlays exactly the spawned active piece from the core — not a reimplementation", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     const filled = cells(container)
       .map((el, i) => ({ x: i % COLS, y: Math.floor(i / COLS), type: el.dataset.cell }))
       .filter((c) => c.type !== "empty");
@@ -72,31 +72,31 @@ describe("GameContainer", () => {
   });
 
   it("ArrowLeft moves the active piece one column left", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(filledCoords(container)).toEqual(expectedAfter("left"));
   });
 
   it("ArrowRight moves the active piece one column right", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: "ArrowRight" });
     expect(filledCoords(container)).toEqual(expectedAfter("right"));
   });
 
   it("ArrowUp rotates the active piece clockwise", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: "ArrowUp" });
     expect(filledCoords(container)).toEqual(expectedAfter("rotateCW"));
   });
 
   it("z rotates the active piece counter-clockwise", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: "z" });
     expect(filledCoords(container)).toEqual(expectedAfter("rotateCCW"));
   });
 
   it("stops the piece at the left wall — repeated illegal moves are no-ops", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     // Push far past the board width so the piece must hit the wall and stop.
     for (let i = 0; i < COLS + 4; i++) fireEvent.keyDown(window, { key: "ArrowLeft" });
 
@@ -108,7 +108,7 @@ describe("GameContainer", () => {
   });
 
   it("ignores unmapped keys", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     const before = filledCoords(container);
     fireEvent.keyDown(window, { key: "Enter" });
     fireEvent.keyDown(window, { key: "a" }); // unmapped letter
@@ -116,13 +116,13 @@ describe("GameContainer", () => {
   });
 
   it("ArrowDown soft-drops the active piece one row (accelerated descent)", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: "ArrowDown" });
     expect(filledCoords(container)).toEqual(expectedAfter("softDrop"));
   });
 
   it("Space hard-drops: the piece falls to the bottom, locks, and a fresh piece spawns", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: " " });
     expect(filledCoords(container)).toEqual(expectedAfter("hardDrop"));
 
@@ -136,7 +136,7 @@ describe("GameContainer", () => {
   });
 
   it("held Space fires exactly once — OS auto-repeat does not machine-gun pieces", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: " " }); // first press: one piece drops + locks
     fireEvent.keyDown(window, { key: " ", repeat: true }); // auto-repeat: must be ignored
     fireEvent.keyDown(window, { key: " ", repeat: true });
@@ -148,7 +148,7 @@ describe("GameContainer", () => {
   });
 
   it("AC: a stranger can play spawn → game-over with the keyboard alone (Space only)", () => {
-    render(<GameContainer />);
+    render(<GameContainer attract={false} />);
     // Repeatedly hard-drop with fresh presses (never a repeat). Bounded well above the ~ROWS
     // pieces needed to top out so a bug can't hang the test.
     for (let i = 0; i < 200 && !screen.queryByRole("alert"); i++) {
@@ -160,14 +160,14 @@ describe("GameContainer", () => {
   });
 
   it("removes its keydown listener on unmount", () => {
-    const { unmount } = render(<GameContainer />);
+    const { unmount } = render(<GameContainer attract={false} />);
     unmount();
     // A stray key after teardown must not throw (listener was cleaned up).
     expect(() => fireEvent.keyDown(window, { key: "ArrowLeft" })).not.toThrow();
   });
 
   it("shows no game-over overlay during normal play", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     // Overlay renders null while the game is live, so the DOM is exactly the board grid.
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByText(/game over/i)).toBeNull();
@@ -175,7 +175,7 @@ describe("GameContainer", () => {
   });
 
   it("C dispatches 'hold': the active piece swaps and the stashed piece shows in the hold box", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     // The piece that will be stashed on the first hold = the default-seed spawn.
     const stashed = createInitialState(DEFAULT_SEED).active.type;
 
@@ -192,13 +192,13 @@ describe("GameContainer", () => {
   });
 
   it("capital C also holds (Shift/CapsLock parity)", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: "C" });
     expect(filledCoords(container)).toEqual(expectedAfter("hold"));
   });
 
   it("a second hold is ignored until the next lock — the block is felt", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     const stashed = createInitialState(DEFAULT_SEED).active.type;
 
     fireEvent.keyDown(window, { key: "c" }); // first hold: swap
@@ -217,7 +217,7 @@ describe("GameContainer", () => {
   });
 
   it("the hold box does not pollute the board grid — cells() stays ROWS×COLS after a hold", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     fireEvent.keyDown(window, { key: "c" });
     // Hold squares carry data-hold (not data-cell), so the board-square count is unchanged.
     expect(cells(container)).toHaveLength(ROWS * COLS);
@@ -276,7 +276,7 @@ describe("GameContainer — game over", () => {
   });
 
   it("shows the overlay on top-out and halts the gravity tick", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
 
     // Pump gravity frames until the stack tops out and the overlay appears (bounded well above the
     // empirical 108-tick top-out for the default seed).
@@ -304,7 +304,7 @@ describe("GameContainer — game over", () => {
   });
 
   it("stacks locked cells into the settled board before topping out", () => {
-    render(<GameContainer />);
+    render(<GameContainer attract={false} />);
 
     let t = 0;
     frame(t);
@@ -356,7 +356,7 @@ describe("GameContainer — pause", () => {
   });
 
   it("P shows the pause overlay and halts the gravity loop", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     frame(0); // baseline timestamp
 
     act(() => {
@@ -380,7 +380,7 @@ describe("GameContainer — pause", () => {
   });
 
   it("a second P hides the overlay and resumes descent one row per interval — no catch-up burst", () => {
-    const { container } = render(<GameContainer />);
+    const { container } = render(<GameContainer attract={false} />);
     frame(0);
 
     act(() => {
@@ -403,7 +403,7 @@ describe("GameContainer — pause", () => {
   });
 
   it("held P is ignored — OS auto-repeat does not flicker the overlay", () => {
-    render(<GameContainer />);
+    render(<GameContainer attract={false} />);
     frame(0);
 
     act(() => {
@@ -418,7 +418,7 @@ describe("GameContainer — pause", () => {
   });
 
   it("capital P also pauses (Shift/CapsLock parity)", () => {
-    render(<GameContainer />);
+    render(<GameContainer attract={false} />);
     frame(0);
     act(() => {
       fireEvent.keyDown(window, { key: "P" });
@@ -427,7 +427,7 @@ describe("GameContainer — pause", () => {
   });
 
   it("pause is inert once the game is over — no pause overlay stacks on the end state", () => {
-    render(<GameContainer />);
+    render(<GameContainer attract={false} />);
     let t = 0;
     frame(t);
     for (let i = 0; i < 400 && !screen.queryByRole("alert"); i++) {
@@ -442,5 +442,73 @@ describe("GameContainer — pause", () => {
     // No pause banner appears; the terminal game-over alert stands alone.
     expect(screen.queryByRole("status")).toBeNull();
     expect(screen.queryByRole("alert")).not.toBeNull();
+  });
+});
+
+/**
+ * Attract mode (T-008-02-01): the default `<GameContainer />` loads self-playing behind the start
+ * overlay. Uses the same deterministic rAF pump; here `pending` drives the *attract* loop (the human
+ * gravity loop is gated off while attract is on), so pumping frames must advance the board via the
+ * bot with no keypress.
+ */
+describe("GameContainer — attract mode", () => {
+  let pending: FrameRequestCallback | null = null;
+  let handle = 1;
+
+  function frame(now: number): void {
+    const cb = pending;
+    pending = null;
+    if (cb) act(() => cb(now));
+  }
+
+  beforeEach(() => {
+    pending = null;
+    handle = 1;
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      pending = cb;
+      return handle++;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {
+      pending = null;
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("loads showing the PRESS START overlay over a live board", () => {
+    render(<GameContainer />);
+    const status = screen.getByRole("status");
+    expect(status.textContent).toMatch(/press start/i);
+    // The overlay is non-blocking, so the board renders beneath it untouched.
+    expect(status.className).toMatch(/pointer-events-none/);
+  });
+
+  it("auto-plays with no keypress: pieces are AI-placed frame over frame", () => {
+    const { container } = render(<GameContainer />);
+
+    // No key is ever pressed. Pump attract frames until the bot has locked a piece — detected by the
+    // filled-cell count exceeding a lone 4-cell active piece (a lock adds settled cells). Bounded so
+    // a stuck driver can't hang the test.
+    let t = 0;
+    frame(t); // baseline
+    let locked = false;
+    for (let i = 0; i < 60 && !locked; i++) {
+      t += 120; // ATTRACT_INTERVAL_MS
+      frame(t);
+      locked = filledCoords(container).length > 4;
+    }
+    expect(locked).toBe(true);
+  });
+
+  it("swallows keyboard input while the bot plays (no bleed-through)", () => {
+    const { container } = render(<GameContainer />);
+    const before = filledCoords(container);
+    // A keypress must not move the piece — the bot owns the board in attract mode.
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    fireEvent.keyDown(window, { key: " " });
+    expect(filledCoords(container)).toEqual(before);
   });
 });

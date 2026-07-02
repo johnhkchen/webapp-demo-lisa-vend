@@ -44,16 +44,26 @@
  * regardless of what the player presses next — giving the CSS `.flash` its full lifetime. The
  * resulting `flashRows`/generation are handed to `Board`, which paints the neon row bars as an
  * overlay over the (already-collapsed) board so a clear reads as juice, not a silent redraw.
+ *
+ * Attract mode (T-008-02-01): on load the game auto-plays itself — the CPU `useAttractLoop` runs the
+ * pure `chooseMove` planner behind a non-blocking `StartOverlay` ("PRESS START"), placing pieces,
+ * clearing lines, and re-initializing on top-out. The `attract` prop (default `true`) is held in
+ * state — the single seam the Start handoff (T-008-02-02) will flip to `false`. While `attract` is
+ * on, the human gravity loop and the keyboard are both **gated off** so exactly one driver advances
+ * the state (the bot) and stray keys don't fight it; flipping `attract` off restores the human game
+ * unchanged. Everything renders from the same `state`, so the demo reuses the exact `Board` path.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import Board from "@/components/Board";
 import GameOverlay from "@/components/GameOverlay";
+import StartOverlay from "@/components/StartOverlay";
 import HoldBox from "@/components/HoldBox";
 import NextPreview from "@/components/NextPreview";
 import { useGame, GRAVITY_INTERVAL_MS, FLASH_DURATION_MS } from "@/components/useGame";
 import { useAnimationFrameLoop } from "@/components/useAnimationFrameLoop";
+import { useAttractLoop } from "@/components/useAttractLoop";
 import { useClearFlash } from "@/components/useClearFlash";
 import type { Input } from "@/lib/game";
 
@@ -81,25 +91,44 @@ const KEY_TO_INPUT: Record<string, Input> = {
   P: "pause",
 };
 
-export default function GameContainer() {
-  const { state, view, ghost, queue, clearedRows, dispatch } = useGame();
+interface GameContainerProps {
+  /**
+   * Start in self-playing attract mode (default `true`). The app loads into attract; a test can opt
+   * into the human game with `attract={false}`. Held as the initial value of internal state — the
+   * seam the Start handoff (T-008-02-02) will flip off.
+   */
+  attract?: boolean;
+}
+
+export default function GameContainer({ attract: initialAttract = true }: GameContainerProps) {
+  const { state, view, ghost, queue, clearedRows, dispatch, reset } = useGame();
+
+  // Whether the CPU is auto-playing. Seeded from the prop; T-008-02-02 wires the setter to Start.
+  const [attract] = useState(initialAttract);
 
   // Latch the transient one-frame `clearedRows` so the row-clear flash plays its full duration
   // regardless of subsequent input; `flash.rows`/`flash.generation` drive Board's overlay.
   const flash = useClearFlash(clearedRows, FLASH_DURATION_MS);
 
+  // CPU attract driver: while `attract`, plays the game itself (chooseMove per interval) and
+  // re-initializes on top-out. Dormant otherwise (schedules no frames), so it never competes with
+  // the human gravity loop below — exactly one driver advances the state at a time.
+  useAttractLoop({ state, dispatch, reset }, attract);
+
   // Automatic gravity: one core "tick" (descend → lock → clear → spawn) per interval, no input.
-  // Gated on !gameOver && !paused so both topping out and pausing truly stop the loop (the `active`
-  // seam) rather than spinning rAF on a no-op `step`. Un-pausing re-enables the loop, which resets
-  // its accumulator, so descent resumes from the frozen state with no banked-tick catch-up.
+  // Gated on !attract && !gameOver && !paused so it is idle while the bot drives, and so topping out
+  // and pausing truly stop the loop (the `active` seam) rather than spinning rAF on a no-op `step`.
+  // Un-pausing re-enables the loop, which resets its accumulator, so descent resumes from the frozen
+  // state with no banked-tick catch-up.
   useAnimationFrameLoop(
     () => dispatch("tick"),
     GRAVITY_INTERVAL_MS,
-    !state.gameOver && !state.paused,
+    !attract && !state.gameOver && !state.paused,
   );
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      if (attract) return; // the bot is playing — swallow stray keys so they don't fight it
       const input = KEY_TO_INPUT[event.key];
       if (!input) return; // not ours — leave browser shortcuts and unmapped keys alone
       // Hard-drop and pause are edge-triggered: a held key fires OS auto-repeat. For hard-drop each
@@ -116,7 +145,7 @@ export default function GameContainer() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dispatch]);
+  }, [dispatch, attract]);
 
   return (
     <div className="flex items-start gap-4">
@@ -140,6 +169,7 @@ export default function GameContainer() {
           score={state.score}
           lines={state.lines}
         />
+        <StartOverlay visible={attract} />
       </div>
       <NextPreview queue={queue} />
     </div>
