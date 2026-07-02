@@ -62,6 +62,18 @@ ability to study the one-shot — produce a better system, and is the extra time
   `localStorage` high-scores/settings, so a corrupted save degrades gracefully instead of
   crashing. Type-safe boundary + real polish. _(advances P4, P5)_
 
+## Tier 5 — "Smarter" showcases (intelligence a one-shot won't attempt)
+
+- **CPU attract-mode: a bot auto-plays the start screen at speed** — behind the Ready/start
+  overlay, a **pure, typed placement AI** plays Tetris on autopilot at accelerated drop speed,
+  looping until the player presses Start (classic arcade attract mode). The bot is a pure
+  `chooseMove(state): Input[]` using standard board heuristics (aggregate height, holes,
+  bumpiness, completed lines — Dellacherie / El-Tetris style), planning the best placement for
+  the current piece and driving inputs through the *same* game core — so it's deterministic,
+  unit-testable, and reuses ghost/preview from the feel pack. A live self-playing board is a
+  huge landing-screen wow, and a real search/heuristic algorithm is exactly what a minutes-long
+  single-shot skips. _(advances P2 + P5; hands off cleanly to the human on Start)_
+
 ---
 
 _Note: Tier 3 & 4 advance **P5 — Engineering rigor as proof** (now in `charter.md`), so they clear
