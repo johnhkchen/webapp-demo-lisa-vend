@@ -62,14 +62,21 @@ export const PREVIEW_COUNT = 5;
 /**
  * What `useGame` returns: the raw core `state`, the render-ready composed `view`, the active
  * piece's `ghost` landing cells (the translucent marker's placement), the `queue` of upcoming
- * piece ids (peeked from the bag — reading it never consumes the stream), and `dispatch` to feed a
- * player/timer `Input` through the core reducer.
+ * piece ids (peeked from the bag — reading it never consumes the stream), the `clearedRows`
+ * surfaced for the current frame (see below), and `dispatch` to feed a player/timer `Input` through
+ * the core reducer.
+ *
+ * `clearedRows` is a straight pass-through of `state.clearedRows` — the pre-collapse indices of the
+ * rows the last `step` cleared, non-empty only on the clear frame (see `lib/game.ts`). It is surfaced
+ * flat here, beside `view`/`ghost`/`queue`, as a render input for the clear animation (T-007-06-02);
+ * no derivation, so no memo.
  */
 export interface GameView {
   state: GameState;
   view: Board;
   ghost: Point[];
   queue: TetrominoType[];
+  clearedRows: number[];
   dispatch: (input: Input) => void;
 }
 
@@ -95,5 +102,5 @@ export function useGame(seed: number = DEFAULT_SEED): GameView {
     (input: Input) => setState((s) => step(s, input)),
     [],
   );
-  return { state, view, ghost, queue, dispatch };
+  return { state, view, ghost, queue, clearedRows: state.clearedRows, dispatch };
 }
