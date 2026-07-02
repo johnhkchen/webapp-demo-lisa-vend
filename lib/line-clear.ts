@@ -24,9 +24,17 @@
 import type { Board, Cell } from "./types";
 
 /** Result of a line-clear pass. `cleared` is the number of full rows removed (0..height);
- * `board` is the fresh, compacted board — same dimensions as the input. */
+ * `clearedRows` are the *indices of those removed rows in the input (pre-collapse) board*, in
+ * ascending order (`cleared === clearedRows.length` by construction); `board` is the fresh,
+ * compacted board — same dimensions as the input.
+ *
+ * `clearedRows` references the board this function was *given*, not the one it returns: the output
+ * no longer contains those rows (survivors have restacked), so the input coordinate space is the
+ * only one in which "which rows cleared" is meaningful. A render layer flashes those rows on the
+ * pre-collapse board before showing the collapsed result (see T-007-06-02). */
 export interface LineClearResult {
   cleared: number;
+  clearedRows: number[];
   board: Board;
 }
 
@@ -36,15 +44,20 @@ export interface LineClearResult {
  * A row is *full* when it has no empty cell; equivalently, a row *survives* when it still contains
  * a `null`. Survivors keep their original relative order and restack to the bottom; that many fresh
  * empty rows are prepended at the top, so height and width are preserved (the stack shrinks, the
- * grid does not). Non-adjacent full rows are handled for free — there is no index bookkeeping, just
- * filter-and-refill.
+ * grid does not). Non-adjacent full rows are handled for free — the single scan records each full
+ * row's index into `clearedRows` and carries survivors into `kept`, so both fall out of one pass.
  */
 export function clearLines(board: Board): LineClearResult {
-  const kept = board.filter((row) => row.some((cell) => cell === null));
-  const cleared = board.length - kept.length;
+  const kept: Board = [];
+  const clearedRows: number[] = [];
+  board.forEach((row, y) => {
+    if (row.some((cell) => cell === null)) kept.push(row);
+    else clearedRows.push(y);
+  });
+  const cleared = clearedRows.length;
   const width = board[0].length;
   const empties = Array.from({ length: cleared }, () =>
     Array.from({ length: width }, (): Cell => null),
   );
-  return { cleared, board: [...empties, ...kept] };
+  return { cleared, clearedRows, board: [...empties, ...kept] };
 }

@@ -90,6 +90,46 @@ describe("clearLines — dimensions & extremes", () => {
   });
 });
 
+describe("clearLines — cleared row indices", () => {
+  it("reports the indices of adjacent full rows (bottom two)", () => {
+    const board = emptyBoard(COLS, ROWS);
+    board[ROWS - 1] = fullRow(COLS, "O");
+    board[ROWS - 2] = fullRow(COLS, "O");
+    expect(clearLines(board).clearedRows).toEqual([ROWS - 2, ROWS - 1]);
+  });
+
+  it("reports non-adjacent indices, skipping a survivor between them", () => {
+    const board = emptyBoard(COLS, ROWS);
+    board[17] = fullRow(COLS, "S"); // full
+    board[18][0] = "Z"; // partial survivor sandwiched between two full rows
+    board[19] = fullRow(COLS, "S"); // full
+    expect(clearLines(board).clearedRows).toEqual([17, 19]);
+  });
+
+  it("reports an empty list when nothing clears", () => {
+    const board = emptyBoard(COLS, ROWS);
+    board[19][0] = "I"; // partial — not full
+    expect(clearLines(board).clearedRows).toEqual([]);
+  });
+
+  it("reports every index for a completely full board", () => {
+    const board: Board = Array.from({ length: ROWS }, () => fullRow(COLS, "J"));
+    expect(clearLines(board).clearedRows).toEqual(
+      Array.from({ length: ROWS }, (_, i) => i),
+    );
+  });
+
+  it("keeps cleared === clearedRows.length on a mixed board", () => {
+    const board = emptyBoard(COLS, ROWS);
+    board[16] = fullRow(COLS, "T");
+    board[18] = fullRow(COLS, "T");
+    board[19] = fullRow(COLS, "T");
+    const { cleared, clearedRows } = clearLines(board);
+    expect(cleared).toBe(clearedRows.length);
+    expect(clearedRows).toEqual([16, 18, 19]);
+  });
+});
+
 describe("clearLines — purity", () => {
   it("does not mutate the input board", () => {
     const board = emptyBoard(COLS, ROWS);
