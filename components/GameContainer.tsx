@@ -27,6 +27,10 @@
  * key, and `state.hold`/`state.canHold` are handed to a side `HoldBox` so the swapped-out piece and
  * the once-per-drop block are visible. Hold needs no auto-repeat guard (unlike hard-drop): a second
  * `"hold"` before the next lock is already a core no-op, so a held key can't machine-gun swaps.
+ *
+ * Next-queue (T-007-04-02): the hook's `queue` (a non-consuming bag peek, sized by `PREVIEW_COUNT`)
+ * is handed to a side `NextPreview` on the right so the upcoming pieces are visible; it re-derives on
+ * each spawn like the rest of the view, so the column advances on its own (hold left, next right).
  */
 
 import { useEffect } from "react";
@@ -34,6 +38,7 @@ import { useEffect } from "react";
 import Board from "@/components/Board";
 import GameOverlay from "@/components/GameOverlay";
 import HoldBox from "@/components/HoldBox";
+import NextPreview from "@/components/NextPreview";
 import { useGame, GRAVITY_INTERVAL_MS } from "@/components/useGame";
 import { useAnimationFrameLoop } from "@/components/useAnimationFrameLoop";
 import type { Input } from "@/lib/game";
@@ -61,7 +66,7 @@ const KEY_TO_INPUT: Record<string, Input> = {
 };
 
 export default function GameContainer() {
-  const { state, view, ghost, dispatch } = useGame();
+  const { state, view, ghost, queue, dispatch } = useGame();
 
   // Automatic gravity: one core "tick" (descend → lock → clear → spawn) per interval, no input.
   // Gated on !gameOver so topping out truly stops the loop (the `active` seam) rather than spinning
@@ -98,6 +103,7 @@ export default function GameContainer() {
           lines={state.lines}
         />
       </div>
+      <NextPreview queue={queue} />
     </div>
   );
 }
