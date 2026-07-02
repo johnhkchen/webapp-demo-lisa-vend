@@ -60,6 +60,20 @@ export const GRAVITY_INTERVAL_MS = 800;
 export const PREVIEW_COUNT = 5;
 
 /**
+ * How long, in milliseconds, the row-clear flash plays before the flashed rows are released. Like
+ * `GRAVITY_INTERVAL_MS`/`PREVIEW_COUNT`/`DEFAULT_SEED`, this is UI/feel policy and so lives in the
+ * seam, not `lib/constants.ts` (the pure core has no notion of animation timing). Consumed by the
+ * `useClearFlash` latch in the client island: `state.clearedRows` is a transient one-frame field
+ * (see `lib/game.ts`), so the latch holds the flashed rows for this duration regardless of what the
+ * player presses next, giving the CSS `.flash` animation its full lifetime.
+ *
+ * Must equal the globals.css `.flash` `--flash-duration` default (500ms): the CSS owns the visual
+ * timing and this owns *when the rows are released*, so keeping them equal releases the rows exactly
+ * as the animation ends — one conceptual source of truth, no drift.
+ */
+export const FLASH_DURATION_MS = 500;
+
+/**
  * What `useGame` returns: the raw core `state`, the render-ready composed `view`, the active
  * piece's `ghost` landing cells (the translucent marker's placement), the `queue` of upcoming
  * piece ids (peeked from the bag — reading it never consumes the stream), the `clearedRows`
