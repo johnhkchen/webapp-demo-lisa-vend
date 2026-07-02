@@ -297,6 +297,86 @@ describe("game-over on spawn into an occupied top row (AC)", () => {
   });
 });
 
+describe("pause (AC)", () => {
+  const PLAY_INPUTS = [
+    "left",
+    "right",
+    "rotateCW",
+    "rotateCCW",
+    "softDrop",
+    "hardDrop",
+    "tick",
+    "hold",
+  ] as const;
+
+  it("'pause' toggles the flag on, then off", () => {
+    const s = createInitialState(1);
+    expect(s.paused).toBe(false);
+    const paused = step(s, "pause");
+    expect(paused.paused).toBe(true);
+    expect(step(paused, "pause").paused).toBe(false);
+  });
+
+  it("a paused tick is a no-op (same reference, gravity frozen)", () => {
+    const paused = step(createInitialState(1), "pause");
+    const after = step(paused, "tick");
+    expect(after).toBe(paused); // nothing ran: no spread, no descent
+    expect(after.active.position.y).toBe(paused.active.position.y);
+  });
+
+  it("toggling twice returns an equivalent (deep-equal, fresh) state", () => {
+    const s = createInitialState(1);
+    const roundTrip = step(step(s, "pause"), "pause");
+    expect(roundTrip).toEqual(s); // resumes to an identical state
+    expect(roundTrip).not.toBe(s); // ...but each toggle spreads a fresh object
+    expect(roundTrip.paused).toBe(false);
+  });
+
+  it("gates every play input while paused (each a same-reference no-op)", () => {
+    const paused = step(createInitialState(1), "pause");
+    for (const input of PLAY_INPUTS) {
+      expect(step(paused, input)).toBe(paused);
+    }
+  });
+
+  it("resumes cleanly: descent continues from the frozen piece", () => {
+    const s = createInitialState(1);
+    // pause → a paused tick (no-op) → resume → tick: the piece falls exactly one row, as if the
+    // pause round-trip never happened.
+    let cur = step(s, "pause");
+    cur = step(cur, "tick"); // swallowed while paused
+    cur = step(cur, "pause"); // resume
+    const resumed = step(cur, "tick");
+    expect(resumed.active.position.y).toBe(s.active.position.y + 1);
+    // The frozen-then-resumed path matches an uninterrupted tick from the start.
+    expect(resumed.active).toEqual(step(s, "tick").active);
+  });
+
+  it("pausing consumes no bag draw and does not perturb the piece stream", () => {
+    const s = createInitialState(1);
+    // A sibling game from the same seed that never pauses — their upcoming streams must match.
+    const sibling = createInitialState(1);
+    expect(step(s, "pause").bag.peek(3)).toEqual(sibling.bag.peek(3));
+  });
+
+  it("a paused hold does not spend the once-per-drop allowance", () => {
+    const paused = step(createInitialState(1), "pause");
+    expect(paused.canHold).toBe(true);
+    expect(step(paused, "hold")).toBe(paused); // swallowed
+    expect(paused.canHold).toBe(true); // allowance untouched
+  });
+
+  it("'pause' is a no-op once game-over is set (a finished game cannot be paused)", () => {
+    const ended = tickUntilGameOver({
+      ...createInitialState(7),
+      board: fillTopCenter(),
+      active: { type: "O", rotation: 0, position: { x: 0, y: 17 } },
+    });
+    expect(ended.gameOver).toBe(true);
+    expect(step(ended, "pause")).toBe(ended);
+  });
+});
+
 describe("upcomingPieces — read-only lookahead surfaced from the live bag", () => {
   const N = 5;
 
