@@ -503,12 +503,111 @@ describe("GameContainer — attract mode", () => {
     expect(locked).toBe(true);
   });
 
-  it("swallows keyboard input while the bot plays (no bleed-through)", () => {
+  // NB: the old "swallows keyboard input while the bot plays" test was intentionally removed here —
+  // its premise (keys are swallowed during attract) is superseded by the T-008-02-02 start handoff
+  // (any ordinary key now starts the game). The "bot plays uncontested" truth it protected is
+  // preserved by the start-handoff block below: a key doesn't move the bot's piece, it starts a
+  // fresh game, and chords/bare modifiers still don't disturb the demo.
+});
+
+/**
+ * Start handoff (T-008-02-02): while the demo auto-plays, pressing Start (any ordinary key) must
+ * halt the attract driver and hand off to a fresh createInitialState human game with no carried-over
+ * bot board/score/active piece and no bot input dispatched afterward. Same deterministic rAF pump as
+ * the sibling blocks — after the flip `pending` is the *human* gravity frame, so pumping advances
+ * via `tick`, not the bot.
+ */
+describe("GameContainer — start handoff (T-008-02-02)", () => {
+  let pending: FrameRequestCallback | null = null;
+  let handle = 1;
+
+  function frame(now: number): void {
+    const cb = pending;
+    pending = null;
+    if (cb) act(() => cb(now));
+  }
+
+  beforeEach(() => {
+    pending = null;
+    handle = 1;
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      pending = cb;
+      return handle++;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {
+      pending = null;
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  const ATTRACT_INTERVAL_MS = 120; // mirrors useGame's ATTRACT_INTERVAL_MS
+
+  /** Pump attract frames until the bot has locked ≥1 piece (board is provably dirty). */
+  function pumpUntilDirty(container: HTMLElement): boolean {
+    let t = 0;
+    frame(t); // baseline, no elapsed time
+    let dirty = false;
+    for (let i = 0; i < 60 && !dirty; i++) {
+      t += ATTRACT_INTERVAL_MS;
+      frame(t);
+      dirty = filledCoords(container).length > 4; // >4 ⇒ a lock added settled cells
+    }
+    return dirty;
+  }
+
+  it("pressing a key discards the bot's board and starts a fresh clean game", () => {
     const { container } = render(<GameContainer />);
-    const before = filledCoords(container);
-    // A keypress must not move the piece — the bot owns the board in attract mode.
+    // Let the bot dirty the board first, so the reset is proven to discard real state.
+    expect(pumpUntilDirty(container)).toBe(true);
+
+    fireEvent.keyDown(window, { key: "Enter" }); // PRESS START
+
+    // The PRESS START overlay is gone (attract off) and the board is exactly the fresh default-seed
+    // spawn — the bot's in-progress board/score/piece were discarded, not inherited.
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(filledCoords(container)).toEqual(expectedAfter());
+  });
+
+  it("after Start, human gravity — not the bot — advances the board", () => {
+    const { container } = render(<GameContainer />);
+    frame(0); // baseline attract frame
+    fireEvent.keyDown(window, { key: "Enter" }); // hand off to the human game
+
+    // After the flip, the only scheduled frame is the human gravity loop. One GRAVITY_INTERVAL_MS
+    // later exactly one `tick` has fired. A bot move's first input is a rotate/shift (never a bare
+    // tick on the default spawn), so matching a pure tick proves the attract driver is silent.
+    frame(0); // baseline for the freshly-scheduled human loop
+    frame(GRAVITY_INTERVAL_MS);
+    expect(filledCoords(container)).toEqual(expectedAfter("tick"));
+  });
+
+  it("after Start, the keyboard controls the human game", () => {
+    const { container } = render(<GameContainer />);
+    frame(0);
+    fireEvent.keyDown(window, { key: "Enter" }); // start
+    // The handoff gave control to the human: ArrowLeft now moves the active piece.
     fireEvent.keyDown(window, { key: "ArrowLeft" });
-    fireEvent.keyDown(window, { key: " " });
-    expect(filledCoords(container)).toEqual(before);
+    expect(filledCoords(container)).toEqual(expectedAfter("left"));
+  });
+
+  it("browser chords and bare modifiers do not start the game", () => {
+    const { container } = render(<GameContainer />);
+    frame(0);
+
+    // A Cmd/Ctrl chord (e.g. reload) and a lone Shift must NOT hand off — leave the browser alone
+    // and don't start on a resting modifier.
+    fireEvent.keyDown(window, { key: "r", metaKey: true });
+    fireEvent.keyDown(window, { key: "Shift" });
+
+    // Still attracting: the PRESS START overlay stands and the demo keeps auto-playing on the next
+    // attract frame (board changes under the bot, unlike a frozen fresh spawn).
+    expect(screen.getByRole("status").textContent).toMatch(/press start/i);
+    const before = filledCoords(container);
+    frame(ATTRACT_INTERVAL_MS);
+    expect(filledCoords(container)).not.toEqual(before);
   });
 });

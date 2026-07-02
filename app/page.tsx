@@ -7,7 +7,7 @@ export default function Home() {
         <h1 className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-6xl">
           TETRIS
         </h1>
-        <p className="mt-2 text-sm text-white/50">Auto-play demo — the CPU is playing</p>
+        <p className="mt-2 text-sm text-white/50">Auto-play demo — press any key to play</p>
       </header>
       <GameContainer attract />
     </main>

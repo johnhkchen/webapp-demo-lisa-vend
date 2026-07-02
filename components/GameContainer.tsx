@@ -48,20 +48,29 @@
  * Attract mode (T-008-02-01): on load the game auto-plays itself — the CPU `useAttractLoop` runs the
  * pure `chooseMove` planner behind a non-blocking `StartOverlay` ("PRESS START"), placing pieces,
  * clearing lines, and re-initializing on top-out. The `attract` prop (default `true`) is held in
- * state — the single seam the Start handoff (T-008-02-02) will flip to `false`. While `attract` is
- * on, the human gravity loop and the keyboard are both **gated off** so exactly one driver advances
- * the state (the bot) and stray keys don't fight it; flipping `attract` off restores the human game
- * unchanged. Everything renders from the same `state`, so the demo reuses the exact `Board` path.
+ * state. While `attract` is on, the human gravity loop and the keyboard are both **gated off** so
+ * exactly one driver advances the state (the bot) and stray keys don't fight it. Everything renders
+ * from the same `state`, so the demo reuses the exact `Board` path.
+ *
+ * Start handoff (T-008-02-02): while attracting, any ordinary key press "presses Start" — it flips
+ * `attract` off AND `reset`s to a fresh `createInitialState(DEFAULT_SEED)`. The reset is essential:
+ * the bot mutates the one shared game holder, so at Start `state` holds the bot's in-progress
+ * board/score/active piece; without the reset the human would inherit it. The two batched setState
+ * calls land in one render — attract off cancels the driver's rAF frame (so no bot input fires after
+ * Start) and enables the human gravity loop + keyboard, while the reset guarantees the first human
+ * game starts clean. Browser-shortcut chords (Ctrl/Cmd/Alt held) and lone modifier keys are excluded
+ * from "any key" (see `isStartKey`) so we neither hijack Cmd+R nor start on a resting Shift; the
+ * start press is consumed and does not double as a game move (the fresh piece begins untouched).
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import Board from "@/components/Board";
 import GameOverlay from "@/components/GameOverlay";
 import StartOverlay from "@/components/StartOverlay";
 import HoldBox from "@/components/HoldBox";
 import NextPreview from "@/components/NextPreview";
-import { useGame, GRAVITY_INTERVAL_MS, FLASH_DURATION_MS } from "@/components/useGame";
+import { useGame, GRAVITY_INTERVAL_MS, FLASH_DURATION_MS, DEFAULT_SEED } from "@/components/useGame";
 import { useAnimationFrameLoop } from "@/components/useAnimationFrameLoop";
 import { useAttractLoop } from "@/components/useAttractLoop";
 import { useClearFlash } from "@/components/useClearFlash";
@@ -75,6 +84,16 @@ import type { Input } from "@/lib/game";
  * auto-repeat while held (hold's repeat is a core no-op); hard-drop and pause are guarded against
  * auto-repeat in the handler (see `onKeyDown`). `p`/`P` toggles pause.
  */
+/**
+ * While the attract demo plays, any *ordinary* key press starts the human game ("PRESS START").
+ * Excludes browser-shortcut chords (Ctrl/Cmd/Alt held) and lone modifier keys so we neither hijack
+ * Cmd+R nor "start" on a resting Shift.
+ */
+function isStartKey(event: KeyboardEvent): boolean {
+  if (event.metaKey || event.ctrlKey || event.altKey) return false;
+  return !["Shift", "Control", "Alt", "Meta"].includes(event.key);
+}
+
 const KEY_TO_INPUT: Record<string, Input> = {
   ArrowLeft: "left",
   ArrowRight: "right",
@@ -103,8 +122,8 @@ interface GameContainerProps {
 export default function GameContainer({ attract: initialAttract = true }: GameContainerProps) {
   const { state, view, ghost, queue, clearedRows, dispatch, reset } = useGame();
 
-  // Whether the CPU is auto-playing. Seeded from the prop; T-008-02-02 wires the setter to Start.
-  const [attract] = useState(initialAttract);
+  // Whether the CPU is auto-playing. Seeded from the prop; the setter is wired to the Start handoff.
+  const [attract, setAttract] = useState(initialAttract);
 
   // Latch the transient one-frame `clearedRows` so the row-clear flash plays its full duration
   // regardless of subsequent input; `flash.rows`/`flash.generation` drive Board's overlay.
@@ -114,6 +133,17 @@ export default function GameContainer({ attract: initialAttract = true }: GameCo
   // re-initializes on top-out. Dormant otherwise (schedules no frames), so it never competes with
   // the human gravity loop below — exactly one driver advances the state at a time.
   useAttractLoop({ state, dispatch, reset }, attract);
+
+  // Start handoff: discard the bot's in-progress game for a fresh clean core state, then halt
+  // attract. Two batched setState calls → one render: attract off cancels the driver's rAF frame
+  // (no bot input after Start) and enables the human gravity loop + keyboard; the reset guarantees
+  // the first human game begins from createInitialState (no carried-over board/score/active piece).
+  // Stable (depends only on the stable `reset`), so the keyboard effect re-subscribes only when
+  // `attract` flips.
+  const startHumanGame = useCallback(() => {
+    reset(DEFAULT_SEED);
+    setAttract(false);
+  }, [reset]);
 
   // Automatic gravity: one core "tick" (descend → lock → clear → spawn) per interval, no input.
   // Gated on !attract && !gameOver && !paused so it is idle while the bot drives, and so topping out
@@ -128,7 +158,15 @@ export default function GameContainer({ attract: initialAttract = true }: GameCo
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (attract) return; // the bot is playing — swallow stray keys so they don't fight it
+      if (attract) {
+        // The bot is playing. An ordinary key "presses Start" — hand off to a fresh human game;
+        // bare modifiers / browser chords stay swallowed so they don't fight the demo or the browser.
+        if (isStartKey(event)) {
+          event.preventDefault();
+          startHumanGame();
+        }
+        return;
+      }
       const input = KEY_TO_INPUT[event.key];
       if (!input) return; // not ours — leave browser shortcuts and unmapped keys alone
       // Hard-drop and pause are edge-triggered: a held key fires OS auto-repeat. For hard-drop each
@@ -145,7 +183,7 @@ export default function GameContainer({ attract: initialAttract = true }: GameCo
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dispatch, attract]);
+  }, [dispatch, attract, startHumanGame]);
 
   return (
     <div className="flex items-start gap-4">
