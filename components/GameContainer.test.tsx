@@ -165,6 +165,55 @@ describe("GameContainer", () => {
     expect(cells(container)).toHaveLength(ROWS * COLS);
   });
 
+  it("C dispatches 'hold': the active piece swaps and the stashed piece shows in the hold box", () => {
+    const { container } = render(<GameContainer />);
+    // The piece that will be stashed on the first hold = the default-seed spawn.
+    const stashed = createInitialState(DEFAULT_SEED).active.type;
+
+    fireEvent.keyDown(window, { key: "c" });
+
+    // Board active piece is exactly the core's post-hold state (ground truth, not reimplemented).
+    expect(filledCoords(container)).toEqual(expectedAfter("hold"));
+
+    // The stashed piece is now visible in the labelled hold box.
+    const holdBox = container.querySelector('[aria-label="Hold"]')!;
+    const holdCells = holdBox.querySelectorAll<HTMLElement>("[data-hold]");
+    expect(holdCells).toHaveLength(4);
+    expect(Array.from(holdCells).every((el) => el.dataset.hold === stashed)).toBe(true);
+  });
+
+  it("capital C also holds (Shift/CapsLock parity)", () => {
+    const { container } = render(<GameContainer />);
+    fireEvent.keyDown(window, { key: "C" });
+    expect(filledCoords(container)).toEqual(expectedAfter("hold"));
+  });
+
+  it("a second hold is ignored until the next lock — the block is felt", () => {
+    const { container } = render(<GameContainer />);
+    const stashed = createInitialState(DEFAULT_SEED).active.type;
+
+    fireEvent.keyDown(window, { key: "c" }); // first hold: swap
+    const afterFirst = filledCoords(container);
+    fireEvent.keyDown(window, { key: "c" }); // second hold before lock: no-op
+
+    // Board is unchanged by the second hold; still equals a single core hold.
+    expect(filledCoords(container)).toEqual(afterFirst);
+    expect(filledCoords(container)).toEqual(expectedAfter("hold"));
+
+    // The hold box still shows the same stashed piece and is flagged as spent.
+    const holdBox = container.querySelector('[aria-label="Hold"]')!;
+    expect(holdBox.getAttribute("data-can-hold")).toBe("false");
+    const holdCells = holdBox.querySelectorAll<HTMLElement>("[data-hold]");
+    expect(Array.from(holdCells).every((el) => el.dataset.hold === stashed)).toBe(true);
+  });
+
+  it("the hold box does not pollute the board grid — cells() stays ROWS×COLS after a hold", () => {
+    const { container } = render(<GameContainer />);
+    fireEvent.keyDown(window, { key: "c" });
+    // Hold squares carry data-hold (not data-cell), so the board-square count is unchanged.
+    expect(cells(container)).toHaveLength(ROWS * COLS);
+  });
+
   it("reflects a line clear: a completed row is gone from what Board receives", () => {
     // The default seed never completes a line (pieces fall straight down), so build the clear
     // deterministically at the render-path seam. The matrix handed to Board is

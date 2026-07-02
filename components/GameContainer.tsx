@@ -22,12 +22,18 @@
  * gravity loop on `!gameOver` so the tick actually *halts* (not merely no-ops), and render a
  * `GameOverlay` over the frozen board so the end state is observable. Locked cells and cleared lines
  * need no code here — they already flow through the composed `view`.
+ *
+ * Hold (T-007-03-02): the `C` key dispatches `"hold"` through the same generic path as every other
+ * key, and `state.hold`/`state.canHold` are handed to a side `HoldBox` so the swapped-out piece and
+ * the once-per-drop block are visible. Hold needs no auto-repeat guard (unlike hard-drop): a second
+ * `"hold"` before the next lock is already a core no-op, so a held key can't machine-gun swaps.
  */
 
 import { useEffect } from "react";
 
 import Board from "@/components/Board";
 import GameOverlay from "@/components/GameOverlay";
+import HoldBox from "@/components/HoldBox";
 import { useGame, GRAVITY_INTERVAL_MS } from "@/components/useGame";
 import { useAnimationFrameLoop } from "@/components/useAnimationFrameLoop";
 import type { Input } from "@/lib/game";
@@ -36,8 +42,9 @@ import type { Input } from "@/lib/game";
  * Keyboard → core `Input`. Keys absent here are ignored (browser shortcuts stay live).
  * `ArrowUp`/`x` rotate clockwise, `z` counter-clockwise — the conventional web-Tetris defaults.
  * `ArrowDown` is soft-drop (accelerated descent) and `" "` (Space) is hard-drop (instant drop +
- * lock). Soft-drop is fine to auto-repeat while held; hard-drop is guarded against auto-repeat in
- * the handler (see `onKeyDown`).
+ * lock). `c`/`C` is hold (swap the active piece into the hold slot). Soft-drop and hold are fine to
+ * auto-repeat while held (hold's repeat is a core no-op); hard-drop is guarded against auto-repeat
+ * in the handler (see `onKeyDown`).
  */
 const KEY_TO_INPUT: Record<string, Input> = {
   ArrowLeft: "left",
@@ -49,6 +56,8 @@ const KEY_TO_INPUT: Record<string, Input> = {
   Z: "rotateCCW",
   ArrowDown: "softDrop",
   " ": "hardDrop",
+  c: "hold",
+  C: "hold",
 };
 
 export default function GameContainer() {
@@ -79,13 +88,16 @@ export default function GameContainer() {
   }, [dispatch]);
 
   return (
-    <div className="relative">
-      <Board board={view} ghost={ghost} ghostType={state.active.type} />
-      <GameOverlay
-        visible={state.gameOver}
-        score={state.score}
-        lines={state.lines}
-      />
+    <div className="flex items-start gap-4">
+      <HoldBox type={state.hold} canHold={state.canHold} />
+      <div className="relative">
+        <Board board={view} ghost={ghost} ghostType={state.active.type} />
+        <GameOverlay
+          visible={state.gameOver}
+          score={state.score}
+          lines={state.lines}
+        />
+      </div>
     </div>
   );
 }
