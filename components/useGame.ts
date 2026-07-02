@@ -50,6 +50,17 @@ export const DEFAULT_SEED = 0x5eed;
 export const GRAVITY_INTERVAL_MS = 800;
 
 /**
+ * Attract-mode cadence in milliseconds: how long the self-playing demo (`useAttractLoop`,
+ * T-008-02-01) rests between the bot's inputs. Deliberately faster than `GRAVITY_INTERVAL_MS` — the
+ * attract driver feeds one rotate/shift/hard-drop per interval, so ~120ms reads as brisk auto-play
+ * (a whole piece placed in ~1s) while still being slow enough to *see* each slide and rotate.
+ *
+ * Lives here beside `GRAVITY_INTERVAL_MS` for the same reason: timing/feel is UI policy, not part of
+ * the pure core. The demo shares the core's `step`/`chooseMove` untouched — only the rate differs.
+ */
+export const ATTRACT_INTERVAL_MS = 120;
+
+/**
  * How many upcoming pieces the HUD surfaces in the next-queue preview. Like `DEFAULT_SEED` and
  * `GRAVITY_INTERVAL_MS`, this is UI/feel policy and so lives in the seam, not `lib/constants.ts` —
  * the pure core supports any window (`SevenBag.peek(n)` / `upcomingPieces`); the count of slots we
@@ -92,6 +103,13 @@ export interface GameView {
   queue: TetrominoType[];
   clearedRows: number[];
   dispatch: (input: Input) => void;
+  /**
+   * Replace the whole game with a fresh `createInitialState(seed)` — the only restart seam (the
+   * pure core has no in-game "new game" input). Referentially stable like `dispatch`, so a consumer
+   * can list it in an effect's deps without re-subscribing. Used by the attract loop to re-initialize
+   * on top-out (T-008-02-01) and by the Start handoff to begin a clean human game (T-008-02-02).
+   */
+  reset: (seed: number) => void;
 }
 
 /**
@@ -116,5 +134,8 @@ export function useGame(seed: number = DEFAULT_SEED): GameView {
     (input: Input) => setState((s) => step(s, input)),
     [],
   );
-  return { state, view, ghost, queue, clearedRows: state.clearedRows, dispatch };
+  // Swap in a brand-new game. Not a functional update: a reset discards the prior game wholesale, so
+  // it does not read `s` — keeping it dependency-free and stable, same as `dispatch`.
+  const reset = useCallback((seed: number) => setState(createInitialState(seed)), []);
+  return { state, view, ghost, queue, clearedRows: state.clearedRows, dispatch, reset };
 }
