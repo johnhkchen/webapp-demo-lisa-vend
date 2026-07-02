@@ -33,19 +33,36 @@ ability to study the one-shot — produce a better system, and is the extra time
 
 - **Define a "better system" rubric and score both builds** — turn the central question into
   something measurable: feature parity, SRS/rotation correctness, RNG determinism, test
-  coverage, a11y, LOC, deployability, and time-to-first-playable. _(needs a benchmark invariant —
-  see note)_
+  coverage, a11y, LOC, deployability, and time-to-first-playable. _(advances P5)_
 - **Differential-conformance test: replay identical inputs through both cores** — feed the same
   seed + input log to our seeded core and a harnessed `tetris.html`, diff the outcomes to prove
-  where guideline-SRS/determinism actually diverges from the naive one-shot. _(needs a benchmark
-  invariant)_
+  where guideline-SRS/determinism actually diverges from the naive one-shot. _(advances P5)_
 - **Publish a side-by-side comparison page (deploy both, embed the scorecard)** — the demo's
-  thesis is the comparison; make it a shippable artifact, not just a doc. _(advances P3; needs a
-  benchmark invariant for the scorecard content)_
+  thesis is the comparison; make it a shippable artifact, not just a doc. _(advances P3, P5)_
+
+## Tier 4 — Show off the power of TypeScript (P5 — where a one-shot can't follow)
+
+- **Make illegal states unrepresentable** — refactor `GameState` into a discriminated union over
+  its status (`Ready|Playing|Paused|Clearing|GameOver`), so `clearingRows` exists *only* in the
+  clearing variant, etc.; drive every reducer branch through an exhaustive `switch` with an
+  `assertNever` default. A new state that isn't handled becomes a *compile error*. _(advances P5)_
+- **Branded domain types + strictest tsconfig** — brand `Row`/`Col`/`Seed`/`Score` so a column
+  can't be passed where a row is expected, and turn on `noUncheckedIndexedAccess`,
+  `exactOptionalPropertyTypes`, `noImplicitOverride`; make the whole core pass. Types catch the
+  exact `board[br][bc]` bug class the untyped one-shot can't. _(advances P5)_
+- **Property-based invariant tests (fast-check)** — generate thousands of random games and assert
+  invariants: gravity never leaves a floating gap, line-clear conserves cell count, the 7-bag
+  emits each piece exactly once per 7, SRS rotation is reversible, score is monotonic. The
+  headline correctness flex vs. the zero-test one-shot. _(advances P5, feeds Tier-3 rubric)_
+- **Deterministic replay + shareable seed URLs** — expose a pure `replay(seed, inputs): GameState`
+  and encode a finished game as a `?seed=…&inputs=…` URL so anyone can replay your exact run.
+  A genuinely cool, type-safe feature a one-shot can't offer — and it *is* the harness Tier-3's
+  differential test needs. _(advances P5 + P4)_
+- **Runtime-validated persistence (Zod)** — Zod schemas that mirror the types 1:1 and validate
+  `localStorage` high-scores/settings, so a corrupted save degrades gracefully instead of
+  crashing. Type-safe boundary + real polish. _(advances P4, P5)_
 
 ---
 
-_Note: Tier-3 signals advance a **benchmarking** goal not yet in `charter.md`. As-is, `vend chain`
-will refuse them at the `bounds` gate (dangling invariant, like the earlier `P1` fix). To make
-them pullable, add a **P5 — Benchmark evidence** invariant to the charter first. Tier 1 & 2 clear
-against existing P1/P2/P4 today._
+_Note: Tier 3 & 4 advance **P5 — Engineering rigor as proof** (now in `charter.md`), so they clear
+the `bounds` gate. Tier 1 & 2 clear against P1/P2/P4. All are pullable today via `vend chain`._

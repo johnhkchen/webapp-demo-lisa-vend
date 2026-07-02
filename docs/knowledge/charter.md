@@ -17,6 +17,12 @@ admitted epic must advance at least one; references resolve to these IDs:
 - **P4 — Feel.** Scoring, levels, next-piece preview, hold, ghost piece, localStorage
   high-score — the touches that make it satisfying to keep playing. Pulled in descending
   payoff order.
+- **P5 — Engineering rigor as proof.** The codebase's *type-safety and provable correctness*
+  are themselves a deliverable — the concrete evidence that a many-shot pipeline beats a
+  one-shot. Illegal states made unrepresentable (discriminated unions + exhaustive `never`
+  checks), branded domain types, the strictest `tsconfig`, property-tested invariants, and
+  deterministic replay. This is the axis a minutes-long single-shot structurally can't reach;
+  advancing it is how we *show off* the approach. Doubles as the benchmark scorecard's substance.
 
 ## The gates (what gets admitted)
 A signal clears only if it is:
