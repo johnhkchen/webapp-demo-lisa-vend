@@ -58,6 +58,11 @@ import { collides } from "./collision";
  * a hold is allowed for the current piece, flipped `false` the instant `"hold"` is used, and
  * reset `true` only when the next piece locks-and-spawns (in `descend`). Together they enforce
  * the "one hold per drop" rule.
+ *
+ * `paused` freezes the game: while `true`, `step` swallows every input except the `"pause"` toggle
+ * (each a no-op returning the same state), so gravity and movement halt and the game resumes to an
+ * identical state. Unlike terminal `gameOver`, this is a resumable running-state flag, not a
+ * separate screen state — a paused game is still a live game with a frozen active piece.
  */
 export interface GameState {
   board: Board;
@@ -67,6 +72,7 @@ export interface GameState {
   lines: number;
   level: number;
   gameOver: boolean;
+  paused: boolean;
   hold: TetrominoType | null;
   canHold: boolean;
 }
@@ -84,6 +90,12 @@ export interface GameState {
  * the active piece and pulls a fresh one from the bag). It is allowed once per drop: a second
  * `hold` before the current piece locks is a no-op, and the allowance resets when the piece
  * locks. The swapped-in piece always re-spawns fresh (spawn rotation/column).
+ *
+ * `pause` toggles the `paused` flag. While paused, `step` swallows every *other* input as a no-op
+ * (same-reference), freezing gravity and movement; a second `pause` flips it back and the game
+ * resumes to an identical state. It is honored only while the game is running — like every input,
+ * `"pause"` is a no-op once `gameOver` is set (a finished game cannot be paused). No piece is drawn
+ * or spawned by a toggle, so pausing never touches the bag or perturbs the piece stream.
  */
 export type Input =
   | "left"
@@ -93,7 +105,8 @@ export type Input =
   | "softDrop"
   | "hardDrop"
   | "tick"
-  | "hold";
+  | "hold"
+  | "pause";
 
 /**
  * Build a fresh game for `seed`: an empty `COLS×ROWS` board, a seeded 7-bag, and the first piece
@@ -113,6 +126,7 @@ export function createInitialState(seed: number): GameState {
     lines: 0,
     level: 1,
     gameOver: false,
+    paused: false,
     hold: null,
     canHold: true,
   };
@@ -190,9 +204,16 @@ function hold(state: GameState): GameState {
  * touch nothing else; `softDrop`/`tick` run `descend`. Never mutates the input state's board or
  * piece (movement/rotation are copy-on-write and return the same reference when blocked, so a
  * no-op lateral move yields an equivalent state).
+ *
+ * Pause is gated in two lines, symmetric with the `gameOver` guard above the `switch`: `"pause"`
+ * toggles `paused` (handled before the paused gate so a paused game can always resume), then a
+ * leading `if (state.paused) return state;` swallows every other input as a same-reference no-op —
+ * one gate covering the whole input alphabet, so gravity and movement freeze until the next toggle.
  */
 export function step(state: GameState, input: Input): GameState {
   if (state.gameOver) return state;
+  if (input === "pause") return { ...state, paused: !state.paused };
+  if (state.paused) return state;
 
   switch (input) {
     case "left":
