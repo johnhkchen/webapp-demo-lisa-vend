@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createInitialState, step, type GameState } from "./game";
 import { emptyBoard } from "./board";
+import { createSevenBag } from "./bag";
 import { pieceCells } from "./collision";
 import { COLS, ROWS } from "./constants";
 import type { Board, Piece } from "./types";
@@ -170,6 +171,99 @@ describe("hard-drop instantly drops and locks the active piece", () => {
     });
     expect(ended.gameOver).toBe(true);
     expect(step(ended, "hardDrop")).toBe(ended);
+  });
+});
+
+describe("hold slot (AC)", () => {
+  it("first hold on an empty slot stashes the active identity and re-spawns fresh from the bag", () => {
+    const s = createInitialState(1);
+    const activeType = s.active.type;
+    const h = step(s, "hold");
+
+    // The active piece's identity moved into the (previously empty) hold slot.
+    expect(s.hold).toBeNull();
+    expect(h.hold).toBe(activeType);
+    // A fresh piece re-spawned at the top (spawn rotation/row), and the allowance is spent.
+    expect(h.active.rotation).toBe(0);
+    expect(h.active.position.y).toBe(0);
+    expect(h.canHold).toBe(false);
+    // The empty-slot path draws from the bag: the new active is the id the bag would deal next.
+    expect(h.active.type).toBe(createSevenBag(1).peek(2)[1]);
+  });
+
+  it("hold on an occupied slot swaps active↔hold and re-spawns the held piece fresh", () => {
+    const base = createInitialState(1);
+    // A mid-board L with a T already stashed; the swap must bring T back at spawn, not here.
+    const active: Piece = { type: "L", rotation: 2, position: { x: 5, y: 8 } };
+    const s: GameState = { ...base, active, hold: "T", canHold: true };
+
+    const h = step(s, "hold");
+    expect(h.active.type).toBe("T"); // held piece returns as the new active
+    expect(h.active.rotation).toBe(0); // ...fresh, not the stashed orientation
+    expect(h.active.position.y).toBe(0);
+    expect(h.hold).toBe("L"); // the active identity goes into the slot
+    expect(h.canHold).toBe(false);
+  });
+
+  it("a swap with an occupied slot does not consume a bag draw", () => {
+    // Two sibling games from one seed: swapping on A must not advance A's queue relative to B.
+    const a: GameState = { ...createInitialState(1), hold: "T", canHold: true };
+    const b: GameState = { ...createInitialState(1), hold: "T", canHold: true };
+    const swapped = step(a, "hold");
+    expect(swapped.bag.peek(3)).toEqual(b.bag.peek(3));
+  });
+
+  it("a second hold before the piece locks is a no-op (same reference)", () => {
+    const first = step(createInitialState(1), "hold");
+    expect(first.canHold).toBe(false);
+    const second = step(first, "hold");
+    expect(second).toBe(first); // guarded by `if (!canHold)`, returns the input unchanged
+  });
+
+  it("the allowance resets when the piece locks, re-enabling hold", () => {
+    const base = createInitialState(1);
+    // An O one row above the floor with hold already spent: the next tick locks it.
+    const active: Piece = { type: "O", rotation: 0, position: { x: 0, y: ROWS - 2 } };
+    const s: GameState = { ...base, active, canHold: false };
+
+    const after = step(s, "tick"); // lock → clear → spawn
+    expect(after.canHold).toBe(true);
+    // And the reset genuinely re-enables hold (not just a bool nobody reads).
+    const held = step(after, "hold");
+    expect(held).not.toBe(after);
+    expect(held.canHold).toBe(false);
+  });
+
+  it("a non-locking tick leaves the hold allowance untouched", () => {
+    const s: GameState = { ...createInitialState(1), canHold: false };
+    const next = step(s, "tick"); // falls one row, does not lock
+    expect(next.active.position.y).toBe(s.active.position.y + 1);
+    expect(next.canHold).toBe(false);
+  });
+
+  it("hard-drop also resets the allowance (shared lock path, not duplicated)", () => {
+    const s: GameState = { ...createInitialState(1), canHold: false };
+    const dropped = step(s, "hardDrop");
+    expect(dropped.canHold).toBe(true);
+  });
+
+  it("is a no-op once game-over is set", () => {
+    const ended = tickUntilGameOver({
+      ...createInitialState(7),
+      board: fillTopCenter(),
+      active: { type: "O", rotation: 0, position: { x: 0, y: 17 } },
+    });
+    expect(ended.gameOver).toBe(true);
+    expect(step(ended, "hold")).toBe(ended);
+  });
+
+  it("does not mutate the input state's active piece", () => {
+    const s = createInitialState(1);
+    const activeBefore = s.active;
+    step(s, "hold");
+    expect(s.active).toBe(activeBefore);
+    expect(s.canHold).toBe(true);
+    expect(s.hold).toBeNull();
   });
 });
 

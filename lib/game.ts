@@ -35,7 +35,7 @@
  * module imports nothing from React/Next and touches no other file.
  */
 
-import type { Board, Piece } from "./types";
+import type { Board, Piece, TetrominoType } from "./types";
 import { COLS, ROWS } from "./constants";
 import { emptyBoard } from "./board";
 import { createSevenBag, type SevenBag } from "./bag";
@@ -51,6 +51,13 @@ import { collides } from "./collision";
  * is separate and always present (a finished game is signalled by `gameOver`, not by a missing
  * piece). `bag` is the live seeded id source (see the module purity note). `score`/`lines`
  * accumulate over the game; `level` scales scoring and is carried unchanged by this ticket.
+ *
+ * `hold` is the held-piece *identity* (`null` until the first hold): a held piece re-enters
+ * the field **fresh** via `spawnPiece`, so only its type is stored — its previous rotation and
+ * position are intentionally discarded. `canHold` is the once-per-drop lock flag: `true` while
+ * a hold is allowed for the current piece, flipped `false` the instant `"hold"` is used, and
+ * reset `true` only when the next piece locks-and-spawns (in `descend`). Together they enforce
+ * the "one hold per drop" rule.
  */
 export interface GameState {
   board: Board;
@@ -60,6 +67,8 @@ export interface GameState {
   lines: number;
   level: number;
   gameOver: boolean;
+  hold: TetrominoType | null;
+  canHold: boolean;
 }
 
 /**
@@ -70,6 +79,11 @@ export interface GameState {
  * (instant drop + lock). `softDrop` and `tick` currently behave identically (both a single gravity
  * step); they are kept distinct so a later ticket can give soft-drop its own scoring/timing without
  * changing the input alphabet.
+ *
+ * `hold` swaps the active piece with the held slot (or, on the first hold of a drop, stashes
+ * the active piece and pulls a fresh one from the bag). It is allowed once per drop: a second
+ * `hold` before the current piece locks is a no-op, and the allowance resets when the piece
+ * locks. The swapped-in piece always re-spawns fresh (spawn rotation/column).
  */
 export type Input =
   | "left"
@@ -78,7 +92,8 @@ export type Input =
   | "rotateCCW"
   | "softDrop"
   | "hardDrop"
-  | "tick";
+  | "tick"
+  | "hold";
 
 /**
  * Build a fresh game for `seed`: an empty `COLS×ROWS` board, a seeded 7-bag, and the first piece
@@ -90,7 +105,17 @@ export function createInitialState(seed: number): GameState {
   const bag = createSevenBag(seed);
   const board = emptyBoard(COLS, ROWS);
   const active = spawnPiece(bag.next(), COLS);
-  return { board, active, bag, score: 0, lines: 0, level: 1, gameOver: false };
+  return {
+    board,
+    active,
+    bag,
+    score: 0,
+    lines: 0,
+    level: 1,
+    gameOver: false,
+    hold: null,
+    canHold: true,
+  };
 }
 
 /**
@@ -116,7 +141,34 @@ function descend(state: GameState): GameState {
   const active = spawnPiece(state.bag.next(), width);
   const gameOver = collides(board, active.type, active.position, active.rotation);
 
-  return { ...state, board, active, score, lines, gameOver };
+  // A fresh piece just locked-and-spawned → the once-per-drop hold allowance resets. This is
+  // the engine's single lock site, so it is the only place `canHold` is re-enabled.
+  return { ...state, board, active, score, lines, gameOver, canHold: true };
+}
+
+/**
+ * Apply a `"hold"` input: swap the active piece with the held slot, once per drop.
+ *
+ * No-op (returns the input state unchanged) when `canHold` is false — a second hold before the
+ * current piece locks. Otherwise the active piece's *identity* moves into `hold`, and the
+ * incoming id becomes a freshly-spawned active: the held id on a swap, or — when the slot is
+ * empty — the next id drawn from the bag. The `??` short-circuit means the bag is advanced
+ * **only** on the empty-slot path; an occupied-slot swap never consumes a draw (so it cannot
+ * desync the piece sequence from an unheld game). `canHold` is set false until the next lock.
+ * The swapped-in piece re-spawns fresh via `spawnPiece`; if it collides with the settled stack
+ * it tops out, exactly as an ordinary spawn does. Returns a fresh `GameState`; the only side
+ * effect is advancing the shared bag, and only when the slot was empty.
+ */
+function hold(state: GameState): GameState {
+  if (!state.canHold) return state;
+
+  const width = state.board[0].length;
+  const stashed = state.active.type;
+  const incoming = state.hold ?? state.bag.next();
+  const active = spawnPiece(incoming, width);
+  const gameOver = collides(state.board, active.type, active.position, active.rotation);
+
+  return { ...state, active, hold: stashed, canHold: false, gameOver };
 }
 
 /**
@@ -149,5 +201,7 @@ export function step(state: GameState, input: Input): GameState {
     case "softDrop":
     case "tick":
       return descend(state);
+    case "hold":
+      return hold(state);
   }
 }
