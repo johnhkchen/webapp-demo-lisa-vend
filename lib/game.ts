@@ -119,6 +119,17 @@ export function createInitialState(seed: number): GameState {
 }
 
 /**
+ * The next `n` upcoming tetromino ids the game will spawn, read from the live bag **without
+ * consuming them** (`SevenBag.peek`). Read-only: calling this never advances the stream, so a
+ * render seam can surface the lookahead without desyncing the piece sequence or breaking
+ * determinism. The returned ids are exactly the types the next `n` spawns will use, in order;
+ * `n <= 0` returns `[]`, and the array is a fresh copy the caller may keep or mutate freely.
+ */
+export function upcomingPieces(state: GameState, n: number): TetrominoType[] {
+  return state.bag.peek(n);
+}
+
+/**
  * One gravity step and, if it lands, the full lock pipeline.
  *
  * `applyGravity` returns the same board reference with the fallen piece when the piece can still
