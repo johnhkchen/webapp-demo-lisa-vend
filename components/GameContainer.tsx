@@ -31,6 +31,13 @@
  * Next-queue (T-007-04-02): the hook's `queue` (a non-consuming bag peek, sized by `PREVIEW_COUNT`)
  * is handed to a side `NextPreview` on the right so the upcoming pieces are visible; it re-derives on
  * each spawn like the rest of the view, so the column advances on its own (hold left, next right).
+ *
+ * Pause (T-007-05-02): the `P` key dispatches `"pause"` (a core toggle of `state.paused`). We gate
+ * the gravity loop on `!gameOver && !paused` so descent truly *halts* while paused (the loop stops
+ * scheduling frames — not merely no-ops), and render a `mode="paused"` `GameOverlay` over the frozen
+ * board so the pause is observable. Resume is clean: re-enabling the loop resets its accumulator, so
+ * descent continues from the frozen position with no catch-up burst of banked ticks. Pause is
+ * edge-triggered like hard-drop (`event.repeat` guarded) so a held `P` can't flicker the overlay.
  */
 
 import { useEffect } from "react";
@@ -48,8 +55,8 @@ import type { Input } from "@/lib/game";
  * `ArrowUp`/`x` rotate clockwise, `z` counter-clockwise — the conventional web-Tetris defaults.
  * `ArrowDown` is soft-drop (accelerated descent) and `" "` (Space) is hard-drop (instant drop +
  * lock). `c`/`C` is hold (swap the active piece into the hold slot). Soft-drop and hold are fine to
- * auto-repeat while held (hold's repeat is a core no-op); hard-drop is guarded against auto-repeat
- * in the handler (see `onKeyDown`).
+ * auto-repeat while held (hold's repeat is a core no-op); hard-drop and pause are guarded against
+ * auto-repeat in the handler (see `onKeyDown`). `p`/`P` toggles pause.
  */
 const KEY_TO_INPUT: Record<string, Input> = {
   ArrowLeft: "left",
@@ -63,24 +70,32 @@ const KEY_TO_INPUT: Record<string, Input> = {
   " ": "hardDrop",
   c: "hold",
   C: "hold",
+  p: "pause",
+  P: "pause",
 };
 
 export default function GameContainer() {
   const { state, view, ghost, queue, dispatch } = useGame();
 
   // Automatic gravity: one core "tick" (descend → lock → clear → spawn) per interval, no input.
-  // Gated on !gameOver so topping out truly stops the loop (the `active` seam) rather than spinning
-  // rAF on a no-op `step`.
-  useAnimationFrameLoop(() => dispatch("tick"), GRAVITY_INTERVAL_MS, !state.gameOver);
+  // Gated on !gameOver && !paused so both topping out and pausing truly stop the loop (the `active`
+  // seam) rather than spinning rAF on a no-op `step`. Un-pausing re-enables the loop, which resets
+  // its accumulator, so descent resumes from the frozen state with no banked-tick catch-up.
+  useAnimationFrameLoop(
+    () => dispatch("tick"),
+    GRAVITY_INTERVAL_MS,
+    !state.gameOver && !state.paused,
+  );
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const input = KEY_TO_INPUT[event.key];
       if (!input) return; // not ours — leave browser shortcuts and unmapped keys alone
-      // Hard-drop is edge-triggered: a held key fires OS auto-repeat, and each repeat would
-      // drop+lock+spawn another piece — machine-gunning through the stack. Consume the key
-      // (preventDefault) but drop the repeats. Soft-drop/move keys keep their auto-repeat.
-      if (input === "hardDrop" && event.repeat) {
+      // Hard-drop and pause are edge-triggered: a held key fires OS auto-repeat. For hard-drop each
+      // repeat would drop+lock+spawn another piece (machine-gunning the stack); for pause each repeat
+      // would flip the overlay on/off. Consume the key (preventDefault) but drop the repeats.
+      // Soft-drop/move/hold keys keep their auto-repeat (hold's repeat is a core no-op).
+      if ((input === "hardDrop" || input === "pause") && event.repeat) {
         event.preventDefault();
         return;
       }
@@ -99,6 +114,12 @@ export default function GameContainer() {
         <Board board={view} ghost={ghost} ghostType={state.active.type} />
         <GameOverlay
           visible={state.gameOver}
+          score={state.score}
+          lines={state.lines}
+        />
+        <GameOverlay
+          visible={state.paused}
+          mode="paused"
           score={state.score}
           lines={state.lines}
         />
