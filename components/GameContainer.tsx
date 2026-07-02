@@ -6,8 +6,9 @@
  *
  * `page.tsx` stays a server component and renders this; everything stateful lives behind this one
  * `"use client"` boundary. It holds no game rules — it hands the hook's composed view (settled
- * board + active piece overlaid) to `Board`, and translates keydown events into core `Input`s via
- * `dispatch`. A window-level listener means the player never has to click to focus.
+ * board + active piece overlaid) plus the ghost landing cells (the translucent drop marker,
+ * T-007-02-02) to `Board`, and translates keydown events into core `Input`s via `dispatch`. A
+ * window-level listener means the player never has to click to focus.
  *
  * Gravity: a `requestAnimationFrame` loop (`useAnimationFrameLoop`) dispatches one `"tick"` per
  * `GRAVITY_INTERVAL_MS`, so the piece descends, locks, and respawns on its own with no input
@@ -51,7 +52,7 @@ const KEY_TO_INPUT: Record<string, Input> = {
 };
 
 export default function GameContainer() {
-  const { state, view, dispatch } = useGame();
+  const { state, view, ghost, dispatch } = useGame();
 
   // Automatic gravity: one core "tick" (descend → lock → clear → spawn) per interval, no input.
   // Gated on !gameOver so topping out truly stops the loop (the `active` seam) rather than spinning
@@ -79,7 +80,7 @@ export default function GameContainer() {
 
   return (
     <div className="relative">
-      <Board board={view} />
+      <Board board={view} ghost={ghost} ghostType={state.active.type} />
       <GameOverlay
         visible={state.gameOver}
         score={state.score}

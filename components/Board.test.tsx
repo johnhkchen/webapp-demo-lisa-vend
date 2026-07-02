@@ -5,13 +5,22 @@ import { cleanup, render } from "@testing-library/react";
 import Board from "@/components/Board";
 import { emptyBoard } from "@/lib/board";
 import { COLS, ROWS } from "@/lib/constants";
-import type { Board as BoardMatrix } from "@/lib/types";
+import type { Board as BoardMatrix, Point } from "@/lib/types";
 
 afterEach(cleanup);
 
 /** All rendered squares, in row-major DOM order. */
 function cells(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-cell]"));
+}
+
+/** Ghost squares → sorted `"x,y,type"`, recovered from the flat row-major order. */
+function ghostCoords(container: HTMLElement): string[] {
+  return cells(container)
+    .map((el, i) => ({ x: i % COLS, y: Math.floor(i / COLS), ghost: el.dataset.ghost }))
+    .filter((c) => c.ghost !== undefined)
+    .map((c) => `${c.x},${c.y},${c.ghost}`)
+    .sort();
 }
 
 describe("Board", () => {
@@ -61,5 +70,73 @@ describe("Board", () => {
     const grid = container.querySelector<HTMLElement>('[aria-label="Tetris board"]');
     expect(grid?.style.gridTemplateColumns).toContain("repeat(3");
     expect(grid?.style.gridTemplateRows).toContain("repeat(2");
+  });
+});
+
+describe("Board — ghost", () => {
+  it("marks exactly the given landing cells with the active piece's hue", () => {
+    const board = emptyBoard(COLS, ROWS);
+    // A horizontal I landing on the bottom row.
+    const ghost: Point[] = [
+      { x: 3, y: ROWS - 1 },
+      { x: 4, y: ROWS - 1 },
+      { x: 5, y: ROWS - 1 },
+      { x: 6, y: ROWS - 1 },
+    ];
+
+    const { container } = render(<Board board={board} ghost={ghost} ghostType="I" />);
+
+    expect(ghostCoords(container)).toEqual(
+      [...ghost].map((p) => `${p.x},${p.y},I`).sort(),
+    );
+    // Grid is still complete and none of the ghosts became a settled cell.
+    expect(cells(container)).toHaveLength(ROWS * COLS);
+    expect(cells(container).every((c) => c.dataset.cell === "empty")).toBe(true);
+  });
+
+  it("draws ghost squares as translucent empties, distinct from plain empties", () => {
+    const board = emptyBoard(COLS, ROWS);
+    const ghost: Point[] = [{ x: 2, y: 5 }];
+
+    const { container } = render(<Board board={board} ghost={ghost} ghostType="S" />);
+    const rendered = cells(container);
+
+    const ghostCell = rendered.find((c) => c.dataset.ghost === "S");
+    expect(ghostCell).toBeDefined();
+    expect(ghostCell!.dataset.cell).toBe("empty");
+    expect(ghostCell!.className).toContain("bg-piece-s/15");
+
+    // Every other square is a plain empty with no ghost tag and no fill.
+    const plain = rendered.filter((c) => c.dataset.ghost === undefined);
+    expect(plain).toHaveLength(ROWS * COLS - 1);
+    expect(plain.every((c) => !c.className.includes("bg-piece-"))).toBe(true);
+  });
+
+  it("suppresses a ghost that lands on a settled cell (settled wins)", () => {
+    const board = emptyBoard(COLS, ROWS);
+    board[ROWS - 1][4] = "O"; // a settled cell...
+    const ghost: Point[] = [{ x: 4, y: ROWS - 1 }]; // ...at the same coordinate as the ghost
+
+    const { container } = render(<Board board={board} ghost={ghost} ghostType="I" />);
+
+    // The occupied square stays solid with no ghost marker.
+    const occupied = cells(container)[(ROWS - 1) * COLS + 4];
+    expect(occupied.dataset.cell).toBe("O");
+    expect(occupied.hasAttribute("data-ghost")).toBe(false);
+    // No ghost squares rendered at all — the only ghost coord was suppressed.
+    expect(ghostCoords(container)).toEqual([]);
+  });
+
+  it("renders no ghost squares when no ghost channel is passed", () => {
+    const { container } = render(<Board board={emptyBoard(COLS, ROWS)} />);
+    expect(container.querySelectorAll("[data-ghost]")).toHaveLength(0);
+  });
+
+  it("draws no ghost when ghostType is null even if cells are supplied", () => {
+    const ghost: Point[] = [{ x: 1, y: 1 }];
+    const { container } = render(
+      <Board board={emptyBoard(COLS, ROWS)} ghost={ghost} ghostType={null} />,
+    );
+    expect(container.querySelectorAll("[data-ghost]")).toHaveLength(0);
   });
 });
