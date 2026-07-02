@@ -18,8 +18,14 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import type { Board, Point } from "@/lib/types";
-import { createInitialState, step, type GameState, type Input } from "@/lib/game";
+import type { Board, Point, TetrominoType } from "@/lib/types";
+import {
+  createInitialState,
+  step,
+  upcomingPieces,
+  type GameState,
+  type Input,
+} from "@/lib/game";
 import { overlayPiece } from "@/lib/overlay";
 import { ghostCells } from "@/lib/ghost";
 
@@ -44,23 +50,36 @@ export const DEFAULT_SEED = 0x5eed;
 export const GRAVITY_INTERVAL_MS = 800;
 
 /**
+ * How many upcoming pieces the HUD surfaces in the next-queue preview. Like `DEFAULT_SEED` and
+ * `GRAVITY_INTERVAL_MS`, this is UI/feel policy and so lives in the seam, not `lib/constants.ts` —
+ * the pure core supports any window (`SevenBag.peek(n)` / `upcomingPieces`); the count of slots we
+ * actually show is a rendering decision. Exported so the preview component (T-007-04-02) renders
+ * exactly as many slots as are surfaced here — one source of truth, no magic-number drift. Five is
+ * the guideline-standard next-piece window.
+ */
+export const PREVIEW_COUNT = 5;
+
+/**
  * What `useGame` returns: the raw core `state`, the render-ready composed `view`, the active
- * piece's `ghost` landing cells (the translucent marker's placement), and `dispatch` to feed a
+ * piece's `ghost` landing cells (the translucent marker's placement), the `queue` of upcoming
+ * piece ids (peeked from the bag — reading it never consumes the stream), and `dispatch` to feed a
  * player/timer `Input` through the core reducer.
  */
 export interface GameView {
   state: GameState;
   view: Board;
   ghost: Point[];
+  queue: TetrominoType[];
   dispatch: (input: Input) => void;
 }
 
 /**
  * Hold a fresh game for `seed` and expose its composed view plus a `dispatch`. The state is
- * created lazily (once), so the bag/spawn run a single time rather than on every render; the view
- * and the ghost landing are memoized on `state`, so both re-derive on every move/rotate (each
- * `dispatch` yields a new `state`) and neither reimplements shape/collision math — `overlayPiece`
- * and `ghostCells` reuse the pure core. `dispatch` applies the pure `step` reducer via a functional
+ * created lazily (once), so the bag/spawn run a single time rather than on every render; the view,
+ * the ghost landing, and the upcoming-piece queue are memoized on `state`, so all re-derive on
+ * every move/rotate (each `dispatch` yields a new `state`) and none reimplements shape/collision
+ * math — `overlayPiece`, `ghostCells`, and `upcomingPieces` reuse the pure core (the queue is a
+ * non-consuming bag peek). `dispatch` applies the pure `step` reducer via a functional
  * state update, so it needs no `state` dependency and is referentially stable — a consumer can list
  * it in an effect's deps without re-subscribing every render.
  */
@@ -68,9 +87,13 @@ export function useGame(seed: number = DEFAULT_SEED): GameView {
   const [state, setState] = useState(() => createInitialState(seed));
   const view = useMemo(() => overlayPiece(state.board, state.active), [state]);
   const ghost = useMemo(() => ghostCells(state.board, state.active), [state]);
+  // `state` identity changes on every dispatch, so this re-derives after each input — including
+  // the lock/hold steps that advance the bag — keeping the surfaced queue current. `peek` is
+  // non-consuming, so surfacing it never desyncs the piece stream.
+  const queue = useMemo(() => upcomingPieces(state, PREVIEW_COUNT), [state]);
   const dispatch = useCallback(
     (input: Input) => setState((s) => step(s, input)),
     [],
   );
-  return { state, view, ghost, dispatch };
+  return { state, view, ghost, queue, dispatch };
 }
