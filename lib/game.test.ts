@@ -105,6 +105,47 @@ describe("descent", () => {
   });
 });
 
+describe("clearedRows — the transient clear-frame surface", () => {
+  it("starts empty on a fresh game", () => {
+    expect(createInitialState(1).clearedRows).toEqual([]);
+  });
+
+  it("surfaces the cleared row indices on the frame a lock clears a row", () => {
+    const base = createInitialState(1);
+    const board = emptyBoard(COLS, ROWS);
+    // Bottom row full except cols 0,1; an O dropped into cols 0,1 completes it.
+    fillRowExcept(board, ROWS - 1, [0, 1]);
+    const active: Piece = { type: "O", rotation: 0, position: { x: 0, y: 17 } };
+    let s: GameState = { ...base, board, active };
+
+    s = step(s, "tick"); // fall to y:18
+    expect(s.clearedRows).toEqual([]); // still falling — nothing cleared yet
+    s = step(s, "tick"); // lock at y:18 → row 19 completes → clears
+
+    expect(s.lines).toBe(1);
+    expect(s.clearedRows).toEqual([ROWS - 1]); // the bottom row's pre-collapse index
+  });
+
+  it("resets to empty on the next step after a clear", () => {
+    const base = createInitialState(1);
+    const board = emptyBoard(COLS, ROWS);
+    fillRowExcept(board, ROWS - 1, [0, 1]);
+    const active: Piece = { type: "O", rotation: 0, position: { x: 0, y: 17 } };
+    let s: GameState = { ...base, board, active };
+    s = step(s, "tick");
+    s = step(s, "tick"); // clears → clearedRows populated
+    expect(s.clearedRows).toEqual([ROWS - 1]);
+
+    s = step(s, "left"); // any subsequent input clears the transient surface
+    expect(s.clearedRows).toEqual([]);
+  });
+
+  it("stays empty on a non-clearing lateral move", () => {
+    const s = step(createInitialState(1), "left");
+    expect(s.clearedRows).toEqual([]);
+  });
+});
+
 describe("hard-drop instantly drops and locks the active piece", () => {
   it("locks the piece into the settled board and spawns a fresh one above the stack", () => {
     const s = createInitialState(1);

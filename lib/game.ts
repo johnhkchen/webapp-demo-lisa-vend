@@ -63,6 +63,12 @@ import { collides } from "./collision";
  * (each a no-op returning the same state), so gravity and movement halt and the game resumes to an
  * identical state. Unlike terminal `gameOver`, this is a resumable running-state flag, not a
  * separate screen state — a paused game is still a live game with a frozen active piece.
+ *
+ * `clearedRows` is a **transient per-step output**: the indices of the rows the *last* `step`
+ * cleared, in the pre-collapse board's coordinate space (row-major, `y`-down — see `clearLines`).
+ * It is non-empty **only** on the frame whose lock cleared rows and reset to `[]` on every other
+ * step, so a render layer can flash exactly those rows for one frame before the collapsed board is
+ * shown (T-007-06-02). It is not accumulated game state; `lines` is the running total.
  */
 export interface GameState {
   board: Board;
@@ -75,6 +81,7 @@ export interface GameState {
   paused: boolean;
   hold: TetrominoType | null;
   canHold: boolean;
+  clearedRows: number[];
 }
 
 /**
@@ -129,6 +136,7 @@ export function createInitialState(seed: number): GameState {
     paused: false,
     hold: null,
     canHold: true,
+    clearedRows: [],
   };
 }
 
@@ -150,16 +158,19 @@ export function upcomingPieces(state: GameState, n: number): TetrominoType[] {
  * descend → we just swap in the new `active`. When it locks, `applyGravity` hands back a fresh
  * board with the piece already merged; we then `clearLines` it, award `scoreFor(cleared, level)`,
  * accumulate the cleared-row count, spawn the next piece from the bag, and set `gameOver` if that
- * spawn collides with the settled stack. Returns a fresh `GameState`; the input's board and piece
- * are never mutated (the only side effect is advancing the shared `bag`).
+ * spawn collides with the settled stack. The `clearedRows` from `clearLines` (indices in the
+ * pre-collapse merged board) are surfaced on the returned state for the render layer's clear
+ * animation; the non-lock path resets them to `[]` so they pulse for exactly one frame. Returns a
+ * fresh `GameState`; the input's board and piece are never mutated (the only side effect is
+ * advancing the shared `bag`).
  */
 function descend(state: GameState): GameState {
   const result = applyGravity(state.board, state.active);
   if (!result.locked) {
-    return { ...state, active: result.piece };
+    return { ...state, active: result.piece, clearedRows: [] };
   }
 
-  const { cleared, board } = clearLines(result.board);
+  const { cleared, clearedRows, board } = clearLines(result.board);
   const score = state.score + scoreFor(cleared, state.level);
   const lines = state.lines + cleared;
   const width = board[0].length;
@@ -167,8 +178,9 @@ function descend(state: GameState): GameState {
   const gameOver = collides(board, active.type, active.position, active.rotation);
 
   // A fresh piece just locked-and-spawned → the once-per-drop hold allowance resets. This is
-  // the engine's single lock site, so it is the only place `canHold` is re-enabled.
-  return { ...state, board, active, score, lines, gameOver, canHold: true };
+  // the engine's single lock site, so it is the only place `canHold` is re-enabled. `clearedRows`
+  // is the pre-collapse index list (empty for a no-clear lock, since `clearLines` returns `[]`).
+  return { ...state, board, active, score, lines, gameOver, canHold: true, clearedRows };
 }
 
 /**
@@ -193,7 +205,7 @@ function hold(state: GameState): GameState {
   const active = spawnPiece(incoming, width);
   const gameOver = collides(state.board, active.type, active.position, active.rotation);
 
-  return { ...state, active, hold: stashed, canHold: false, gameOver };
+  return { ...state, active, hold: stashed, canHold: false, gameOver, clearedRows: [] };
 }
 
 /**
@@ -212,18 +224,20 @@ function hold(state: GameState): GameState {
  */
 export function step(state: GameState, input: Input): GameState {
   if (state.gameOver) return state;
-  if (input === "pause") return { ...state, paused: !state.paused };
+  if (input === "pause") return { ...state, paused: !state.paused, clearedRows: [] };
   if (state.paused) return state;
 
+  // Every constructive non-lock branch resets `clearedRows` to `[]` so a just-cleared frame's
+  // indices do not linger onto the next move/rotate; only `descend` repopulates them on a lock.
   switch (input) {
     case "left":
-      return { ...state, active: moveLeft(state.board, state.active) };
+      return { ...state, active: moveLeft(state.board, state.active), clearedRows: [] };
     case "right":
-      return { ...state, active: moveRight(state.board, state.active) };
+      return { ...state, active: moveRight(state.board, state.active), clearedRows: [] };
     case "rotateCW":
-      return { ...state, active: rotateCW(state.board, state.active) };
+      return { ...state, active: rotateCW(state.board, state.active), clearedRows: [] };
     case "rotateCCW":
-      return { ...state, active: rotateCCW(state.board, state.active) };
+      return { ...state, active: rotateCCW(state.board, state.active), clearedRows: [] };
     case "hardDrop":
       // Drop straight to the resting position, then run the ordinary lock pipeline: with the
       // piece already at rest, `descend`'s `applyGravity` locks it immediately (instant drop +
