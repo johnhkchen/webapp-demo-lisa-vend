@@ -38,6 +38,12 @@
  * board so the pause is observable. Resume is clean: re-enabling the loop resets its accumulator, so
  * descent continues from the frozen position with no catch-up burst of banked ticks. Pause is
  * edge-triggered like hard-drop (`event.repeat` guarded) so a held `P` can't flicker the overlay.
+ *
+ * Row-clear flash (T-007-06-02): the hook's `clearedRows` is a transient one-frame field, so we run
+ * it through `useClearFlash`, which latches the cleared rows and holds them for `FLASH_DURATION_MS`
+ * regardless of what the player presses next — giving the CSS `.flash` its full lifetime. The
+ * resulting `flashRows`/generation are handed to `Board`, which paints the neon row bars as an
+ * overlay over the (already-collapsed) board so a clear reads as juice, not a silent redraw.
  */
 
 import { useEffect } from "react";
@@ -46,8 +52,9 @@ import Board from "@/components/Board";
 import GameOverlay from "@/components/GameOverlay";
 import HoldBox from "@/components/HoldBox";
 import NextPreview from "@/components/NextPreview";
-import { useGame, GRAVITY_INTERVAL_MS } from "@/components/useGame";
+import { useGame, GRAVITY_INTERVAL_MS, FLASH_DURATION_MS } from "@/components/useGame";
 import { useAnimationFrameLoop } from "@/components/useAnimationFrameLoop";
+import { useClearFlash } from "@/components/useClearFlash";
 import type { Input } from "@/lib/game";
 
 /**
@@ -75,7 +82,11 @@ const KEY_TO_INPUT: Record<string, Input> = {
 };
 
 export default function GameContainer() {
-  const { state, view, ghost, queue, dispatch } = useGame();
+  const { state, view, ghost, queue, clearedRows, dispatch } = useGame();
+
+  // Latch the transient one-frame `clearedRows` so the row-clear flash plays its full duration
+  // regardless of subsequent input; `flash.rows`/`flash.generation` drive Board's overlay.
+  const flash = useClearFlash(clearedRows, FLASH_DURATION_MS);
 
   // Automatic gravity: one core "tick" (descend → lock → clear → spawn) per interval, no input.
   // Gated on !gameOver && !paused so both topping out and pausing truly stop the loop (the `active`
@@ -111,7 +122,13 @@ export default function GameContainer() {
     <div className="flex items-start gap-4">
       <HoldBox type={state.hold} canHold={state.canHold} />
       <div className="relative">
-        <Board board={view} ghost={ghost} ghostType={state.active.type} />
+        <Board
+          board={view}
+          ghost={ghost}
+          ghostType={state.active.type}
+          flashRows={flash.rows}
+          flashKey={flash.generation}
+        />
         <GameOverlay
           visible={state.gameOver}
           score={state.score}

@@ -45,6 +45,15 @@ describe("GameContainer", () => {
     expect(cells(container)).toHaveLength(ROWS * COLS);
   });
 
+  it("shows no row-clear flash during normal play (the overlay is absent until a clear)", () => {
+    // A freshly-rendered game has cleared no rows, so the flash overlay must not be present. The
+    // clear→flash mechanism itself is covered by useClearFlash + Board.flash unit tests; the
+    // default-seed core never completes a line through play (see the clear test below), so this
+    // guards only that the wiring stays dark when idle.
+    const { container } = render(<GameContainer />);
+    expect(container.querySelectorAll("[data-flash-row]")).toHaveLength(0);
+  });
+
   it("overlays exactly the spawned active piece from the core — not a reimplementation", () => {
     const { container } = render(<GameContainer />);
     const filled = cells(container)
