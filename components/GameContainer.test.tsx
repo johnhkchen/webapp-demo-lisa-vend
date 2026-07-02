@@ -313,3 +313,125 @@ describe("GameContainer — game over", () => {
     expect(settled.length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * Pause integration: drive the real hook + real gravity loop through the same deterministic rAF
+ * pump as the game-over block. `pending` (a scheduled frame) is the observable "is the loop running"
+ * signal — null means the loop is genuinely halted, not merely no-oping.
+ */
+describe("GameContainer — pause", () => {
+  let pending: FrameRequestCallback | null = null;
+  let handle = 1;
+
+  function frame(now: number): void {
+    const cb = pending;
+    pending = null;
+    if (cb) act(() => cb(now));
+  }
+
+  beforeEach(() => {
+    pending = null;
+    handle = 1;
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      pending = cb;
+      return handle++;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {
+      pending = null;
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("P shows the pause overlay and halts the gravity loop", () => {
+    const { container } = render(<GameContainer />);
+    frame(0); // baseline timestamp
+
+    act(() => {
+      fireEvent.keyDown(window, { key: "p" });
+    });
+
+    // Observable pause: a polite status banner, distinct from the assertive game-over alert.
+    const status = screen.queryByRole("status");
+    expect(status).not.toBeNull();
+    expect(status!.textContent).toMatch(/paused/i);
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    // Loop halted: with active=false the effect cancelled the pending frame and scheduled none.
+    expect(pending).toBeNull();
+
+    // Pumping further frames leaves the board frozen (nothing is scheduled to run).
+    const frozen = filledCoords(container);
+    for (let i = 0; i < 5; i++) frame((i + 1) * GRAVITY_INTERVAL_MS);
+    expect(filledCoords(container)).toEqual(frozen);
+    expect(screen.queryByRole("status")).not.toBeNull();
+  });
+
+  it("a second P hides the overlay and resumes descent one row per interval — no catch-up burst", () => {
+    const { container } = render(<GameContainer />);
+    frame(0);
+
+    act(() => {
+      fireEvent.keyDown(window, { key: "p" }); // pause
+    });
+    expect(pending).toBeNull();
+
+    act(() => {
+      fireEvent.keyDown(window, { key: "p" }); // resume
+    });
+    // Overlay gone and the loop is scheduled again.
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(pending).not.toBeNull();
+
+    // The accumulator reset on resume: the first post-resume frame only sets a baseline, and one
+    // full interval later exactly one tick has fired — no banked backlog dropped the piece further.
+    frame(0);
+    frame(GRAVITY_INTERVAL_MS);
+    expect(filledCoords(container)).toEqual(expectedAfter("tick"));
+  });
+
+  it("held P is ignored — OS auto-repeat does not flicker the overlay", () => {
+    render(<GameContainer />);
+    frame(0);
+
+    act(() => {
+      fireEvent.keyDown(window, { key: "p" }); // real press → pause
+      fireEvent.keyDown(window, { key: "p", repeat: true }); // auto-repeat → ignored
+      fireEvent.keyDown(window, { key: "p", repeat: true }); // auto-repeat → ignored
+    });
+
+    // One effective toggle: still paused (repeats did not flip it back off).
+    expect(screen.queryByRole("status")).not.toBeNull();
+    expect(pending).toBeNull();
+  });
+
+  it("capital P also pauses (Shift/CapsLock parity)", () => {
+    render(<GameContainer />);
+    frame(0);
+    act(() => {
+      fireEvent.keyDown(window, { key: "P" });
+    });
+    expect(screen.queryByRole("status")).not.toBeNull();
+  });
+
+  it("pause is inert once the game is over — no pause overlay stacks on the end state", () => {
+    render(<GameContainer />);
+    let t = 0;
+    frame(t);
+    for (let i = 0; i < 400 && !screen.queryByRole("alert"); i++) {
+      t += GRAVITY_INTERVAL_MS;
+      frame(t);
+    }
+    expect(screen.queryByRole("alert")).not.toBeNull();
+
+    act(() => {
+      fireEvent.keyDown(window, { key: "p" }); // core no-op once gameOver
+    });
+    // No pause banner appears; the terminal game-over alert stands alone.
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("alert")).not.toBeNull();
+  });
+});
