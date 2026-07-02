@@ -52,3 +52,65 @@ describe("createSevenBag", () => {
     }
   });
 });
+
+// Seeds spanning zero, negatives, fractionals, and large values — mulberry32 normalizes any of them.
+const SEEDS = [0, 1, 2, 5, 42, 1337, 20260701, -7, 3.14, 999999];
+
+describe("SevenBag.peek", () => {
+  it("equals the next n next() draws, for many seeds and many n (across refill boundaries)", () => {
+    for (const seed of SEEDS) {
+      for (let n = 0; n <= 21; n++) {
+        // Fresh sibling bags from the same seed: peek one, draw from the other, compare.
+        const peeked = createSevenBag(seed).peek(n);
+        const drawn = drawN(createSevenBag(seed), n);
+        expect(peeked).toEqual(drawn);
+        expect(peeked).toHaveLength(n);
+      }
+    }
+  });
+
+  it("does not mutate the stream: draws after peeks match a never-peeked sibling", () => {
+    for (const seed of SEEDS) {
+      const a = createSevenBag(seed);
+      const b = createSevenBag(seed);
+      // Interleave several peeks of varying sizes, including across the first refill.
+      a.peek(1);
+      a.peek(7);
+      a.peek(15);
+      expect(drawN(a, 50)).toEqual(drawN(b, 50));
+    }
+  });
+
+  it("agrees when interleaved with next(): peeked ids match the draws that follow", () => {
+    const bag = createSevenBag(1337);
+    drawN(bag, 3); // advance into the stream
+    const peeked = bag.peek(10); // spans the current bag into the next
+    expect(drawN(bag, 10)).toEqual(peeked);
+  });
+
+  it("is idempotent: repeated peeks with no intervening next() are equal", () => {
+    const bag = createSevenBag(42);
+    const first = bag.peek(12);
+    const second = bag.peek(12);
+    expect(second).toEqual(first);
+    // And peeking still didn't consume anything.
+    expect(drawN(bag, 12)).toEqual(first);
+  });
+
+  it("treats n <= 0 as an empty peek", () => {
+    const bag = createSevenBag(5);
+    expect(bag.peek(0)).toEqual([]);
+    expect(bag.peek(-3)).toEqual([]);
+    // Empty peeks do not advance the stream.
+    expect(drawN(bag, 7)).toEqual(drawN(createSevenBag(5), 7));
+  });
+
+  it("returns a fresh array: mutating the result cannot corrupt the stream", () => {
+    const bag = createSevenBag(2);
+    const peeked = bag.peek(5);
+    peeked[0] = "I";
+    peeked.length = 0;
+    // The stream is unaffected by mutations to a previously-returned peek array.
+    expect(drawN(bag, 5)).toEqual(createSevenBag(2).peek(5));
+  });
+});

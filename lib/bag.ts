@@ -9,6 +9,11 @@
  * Reproducible: order is fixed entirely by the seed via `mulberry32` (see `lib/rng.ts`), so two
  * bags built from the same seed emit identical sequences. This module yields `TetrominoType` ids
  * only — turning an id into a spawned `Piece` (position, rotation) is a later ticket.
+ *
+ * The stream also supports non-consuming lookahead via `peek(n)`: it reveals the next `n` ids
+ * without advancing. This is safe because generation and consumption share a single buffer — the
+ * only place `rand` is ever advanced is when the buffer is grown, so peeking and then drawing
+ * return the very same generated ids (peek cannot desynchronize from `next`).
  */
 
 import type { TetrominoType } from "./types";
@@ -34,22 +39,42 @@ function shuffle(
 
 /** A reproducible stream of tetromino ids. `next()` refills the bag internally when it empties. */
 export interface SevenBag {
+  /** Draw and consume the next id. Refills (reshuffles) internally when the bag empties. */
   next(): TetrominoType;
+  /**
+   * Reveal the next `n` ids **without consuming them**: `peek(n)` equals the ids the following
+   * `n` `next()` calls will return, and it does not advance the stream (draws after a peek are
+   * identical to draws without it). `n <= 0` returns `[]`. Returns a fresh array — the internal
+   * buffer is never exposed, so mutating the result cannot corrupt the stream.
+   */
+  peek(n: number): TetrominoType[];
 }
 
 /**
- * Build a seeded 7-bag. Same `seed` ⇒ identical piece sequence. Draws come from the front of the
- * current bag; when the bag is exhausted it is refilled with a fresh shuffled permutation of all
- * seven ids before the next draw.
+ * Build a seeded 7-bag. Same `seed` ⇒ identical piece sequence. Ids are served from an internal
+ * `buffer` of already-generated, not-yet-consumed ids; when more are needed the buffer is grown by
+ * appending fresh shuffled permutations of all seven ids. Growing the buffer is the *only* place
+ * `rand` is advanced, so `peek` (which grows then reads) and `next` (which grows then removes)
+ * always agree.
  */
 export function createSevenBag(seed: number): SevenBag {
   const rand = mulberry32(seed);
-  let queue: TetrominoType[] = [];
+  const buffer: TetrominoType[] = [];
+  // Grow `buffer` until it holds at least `n` ids by appending fresh shuffled bags (7 ids each).
+  // The sole consumer of `rand`, so generation order is fixed regardless of peek/next interleaving.
+  const ensure = (n: number): void => {
+    while (buffer.length < n) buffer.push(...shuffle(TETROMINO_TYPES, rand));
+  };
   return {
     next(): TetrominoType {
-      if (queue.length === 0) queue = shuffle(TETROMINO_TYPES, rand);
-      // Safe: a fresh bag always holds seven ids, so the queue is non-empty here.
-      return queue.shift()!;
+      ensure(1);
+      // Safe: ensure(1) guarantees the buffer holds at least one id.
+      return buffer.shift()!;
+    },
+    peek(n: number): TetrominoType[] {
+      if (n <= 0) return [];
+      ensure(n);
+      return buffer.slice(0, n);
     },
   };
 }
