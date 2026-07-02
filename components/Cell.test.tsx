@@ -32,6 +32,8 @@ describe("Cell", () => {
     // Solid fill — the base token, not a translucent (`/opacity`) variant.
     expect(el.className).toContain("bg-piece-t");
     expect(el.className).not.toContain("bg-piece-t/");
+    // Carries the compositor-only motion hook so redraws ease at 60fps (T-007-06-02).
+    expect(el.className).toContain("motion");
   });
 
   it("renders a translucent ghost marker on an empty square", () => {

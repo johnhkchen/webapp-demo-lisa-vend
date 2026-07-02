@@ -20,6 +20,12 @@ import type { Cell as CellValue, TetrominoType } from "@/lib/types";
  * the active piece or the stack is silently suppressed (the caller, `Board`, already only sets it
  * where the landing lands; this guard makes suppression correct even if it didn't). Ghost squares
  * stay `data-cell="empty"` (their model cell *is* empty) and additionally carry `data-ghost={id}`.
+ *
+ * Motion (T-007-06-02): every branch's root carries the `.motion` utility, giving each square a
+ * compositor-only transition hook (transform/opacity — the two properties the GPU animates without
+ * layout or paint) so the clear/collapse redraw eases instead of snapping, at 60fps. `.motion`
+ * deliberately does NOT transition `background-color` (a paint property, off-compositor) — fills
+ * still swap instantly; only transform/opacity interpolate. See `app/globals.css`.
  */
 const CELL_COLOR: Record<TetrominoType, string> = {
   I: "bg-piece-i",
@@ -60,14 +66,14 @@ interface CellProps {
 export default function Cell({ cell, ghost = null }: CellProps) {
   if (cell !== null) {
     return (
-      <div className={`rounded-[2px] ${CELL_COLOR[cell]}`} data-cell={cell} />
+      <div className={`motion rounded-[2px] ${CELL_COLOR[cell]}`} data-cell={cell} />
     );
   }
 
   if (ghost !== null) {
     return (
       <div
-        className={`rounded-[2px] ${GHOST_COLOR[ghost]}`}
+        className={`motion rounded-[2px] ${GHOST_COLOR[ghost]}`}
         data-cell="empty"
         data-ghost={ghost}
       />
@@ -76,7 +82,7 @@ export default function Cell({ cell, ghost = null }: CellProps) {
 
   return (
     <div
-      className="rounded-[2px] bg-white/5 ring-1 ring-inset ring-white/5"
+      className="motion rounded-[2px] bg-white/5 ring-1 ring-inset ring-white/5"
       data-cell="empty"
     />
   );
