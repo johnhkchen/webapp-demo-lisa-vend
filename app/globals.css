@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../styles/vendor/b28-clay.css";
 
 /*
  * Base scaffold styles. The neon/glass theme (tokens, glow, animation) is a later
@@ -12,13 +13,15 @@
  */
 
 :root {
-  --background: #0a0a0f;
-  --foreground: #ededf2;
+  --background: var(--clay-bg);
+  --foreground: var(--clay-ink);
+  --primary: var(--clay-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
 }
 
 /*
@@ -208,5 +211,11 @@ body {
 }
 
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-karla), var(--clay-font-body);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-lora), var(--clay-font-display);
 }
