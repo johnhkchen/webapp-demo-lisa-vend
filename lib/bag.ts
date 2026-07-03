@@ -1,13 +1,13 @@
 /**
- * Seeded 7-bag piece generator for the Tetris game core (the modern "Random Generator" rule).
+ * Seeded 7-bag piece generator for the RowClear game core (the modern "Random Generator" rule).
  *
  * Pure, framework-free (no React/Next; enforced by the `lib/**` eslint boundary). Deals pieces
- * from a bag holding exactly one of each of the seven tetromino ids; when the bag empties it is
+ * from a bag holding exactly one of each of the seven piece ids; when the bag empties it is
  * refilled and reshuffled. Consequence: no piece repeats until all seven have appeared, so every
  * *aligned* window of seven draws (`[0,7)`, `[7,14)`, …) is a permutation of all seven ids.
  *
  * Reproducible: order is fixed entirely by the seed via `mulberry32` (see `lib/rng.ts`), so two
- * bags built from the same seed emit identical sequences. This module yields `TetrominoType` ids
+ * bags built from the same seed emit identical sequences. This module yields `PieceType` ids
  * only — turning an id into a spawned `Piece` (position, rotation) is a later ticket.
  *
  * The stream also supports non-consuming lookahead via `peek(n)`: it reveals the next `n` ids
@@ -16,19 +16,19 @@
  * return the very same generated ids (peek cannot desynchronize from `next`).
  */
 
-import type { TetrominoType } from "./types";
-import { TETROMINO_TYPES } from "./tetrominoes";
+import type { PieceType } from "./types";
+import { PIECE_TYPES } from "./pieces";
 import { mulberry32, type RandomFn } from "./rng";
 
 /**
  * Unbiased Fisher–Yates shuffle. Returns a **new** array (the input, e.g. the shared
- * `TETROMINO_TYPES`, is copied and never mutated). Each position gets a uniform index in
+ * `PIECE_TYPES`, is copied and never mutated). Each position gets a uniform index in
  * `[0, i]` via `Math.floor(rand() * (i + 1))`, which yields uniformly-distributed permutations.
  */
 function shuffle(
-  items: readonly TetrominoType[],
+  items: readonly PieceType[],
   rand: RandomFn,
-): TetrominoType[] {
+): PieceType[] {
   const out = items.slice();
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
@@ -37,17 +37,17 @@ function shuffle(
   return out;
 }
 
-/** A reproducible stream of tetromino ids. `next()` refills the bag internally when it empties. */
+/** A reproducible stream of piece ids. `next()` refills the bag internally when it empties. */
 export interface SevenBag {
   /** Draw and consume the next id. Refills (reshuffles) internally when the bag empties. */
-  next(): TetrominoType;
+  next(): PieceType;
   /**
    * Reveal the next `n` ids **without consuming them**: `peek(n)` equals the ids the following
    * `n` `next()` calls will return, and it does not advance the stream (draws after a peek are
    * identical to draws without it). `n <= 0` returns `[]`. Returns a fresh array — the internal
    * buffer is never exposed, so mutating the result cannot corrupt the stream.
    */
-  peek(n: number): TetrominoType[];
+  peek(n: number): PieceType[];
 }
 
 /**
@@ -59,19 +59,19 @@ export interface SevenBag {
  */
 export function createSevenBag(seed: number): SevenBag {
   const rand = mulberry32(seed);
-  const buffer: TetrominoType[] = [];
+  const buffer: PieceType[] = [];
   // Grow `buffer` until it holds at least `n` ids by appending fresh shuffled bags (7 ids each).
   // The sole consumer of `rand`, so generation order is fixed regardless of peek/next interleaving.
   const ensure = (n: number): void => {
-    while (buffer.length < n) buffer.push(...shuffle(TETROMINO_TYPES, rand));
+    while (buffer.length < n) buffer.push(...shuffle(PIECE_TYPES, rand));
   };
   return {
-    next(): TetrominoType {
+    next(): PieceType {
       ensure(1);
       // Safe: ensure(1) guarantees the buffer holds at least one id.
       return buffer.shift()!;
     },
-    peek(n: number): TetrominoType[] {
+    peek(n: number): PieceType[] {
       if (n <= 0) return [];
       ensure(n);
       return buffer.slice(0, n);

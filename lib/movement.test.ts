@@ -3,22 +3,22 @@ import { spawnPiece, tryMove, moveLeft, moveRight, softDrop, hardDrop } from "./
 import { pieceCells } from "./collision";
 import { collides } from "./collision";
 import { emptyBoard } from "./board";
-import { BOUNDING_BOX } from "./tetrominoes";
-import type { Board, Point, Piece, TetrominoType } from "./types";
+import { BOUNDING_BOX } from "./pieces";
+import type { Board, Point, Piece, PieceType } from "./types";
 
 /** Stable string key for a cell, so cell lists compare as unordered sets. */
 const keyOf = (c: Point): string => `${c.x},${c.y}`;
 const asSet = (cells: readonly Point[]): Set<string> => new Set(cells.map(keyOf));
 
 /** Stamp settled cells of a given type into a fixture board (mutates + returns it). */
-const settle = (board: Board, cells: Point[], type: TetrominoType): Board => {
+const settle = (board: Board, cells: Point[], type: PieceType): Board => {
   for (const { x, y } of cells) board[y][x] = type;
   return board;
 };
 
 describe("spawnPiece", () => {
   // Canonical SRS spawn columns on a 10-wide board.
-  const SPAWN_X: Record<TetrominoType, number> = {
+  const SPAWN_X: Record<PieceType, number> = {
     I: 3,
     O: 4,
     T: 3,
@@ -28,7 +28,7 @@ describe("spawnPiece", () => {
     L: 3,
   };
 
-  it.each(Object.keys(SPAWN_X) as TetrominoType[])(
+  it.each(Object.keys(SPAWN_X) as PieceType[])(
     "%s spawns centered at rotation 0, y=0",
     (type) => {
       const piece = spawnPiece(type, 10);
@@ -42,7 +42,7 @@ describe("spawnPiece", () => {
     },
   );
 
-  it.each(Object.keys(SPAWN_X) as TetrominoType[])(
+  it.each(Object.keys(SPAWN_X) as PieceType[])(
     "%s spawns fully in bounds on a standard board",
     (type) => {
       const board = emptyBoard(10, 20);

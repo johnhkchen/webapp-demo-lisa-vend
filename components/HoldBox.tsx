@@ -1,5 +1,5 @@
-import { cellsFor, BOUNDING_BOX } from "@/lib/tetrominoes";
-import type { TetrominoType } from "@/lib/types";
+import { cellsFor, BOUNDING_BOX } from "@/lib/pieces";
+import type { PieceType } from "@/lib/types";
 
 /**
  * `HoldBox` — the held-piece display beside the board (T-007-03-02).
@@ -10,7 +10,7 @@ import type { TetrominoType } from "@/lib/types";
  * component only surfaces two fields read straight off the hook — `state.hold` (what is held) and
  * `state.canHold` (whether a hold is still allowed this drop).
  *
- * It draws the held tetromino by reusing the shape data: the spawn cells `cellsFor(type, 0)`
+ * It draws the held piece by reusing the shape data: the spawn cells `cellsFor(type, 0)`
  * painted onto a `BOUNDING_BOX[type]`-sized mini grid, so it re-derives no offsets of its own. An
  * empty slot (`type === null`, before the first hold) renders a stable 4×4 blank so the panel is
  * present from first paint and the layout never jumps.
@@ -33,7 +33,7 @@ import type { TetrominoType } from "@/lib/types";
  * static map (the pattern `Cell.CELL_COLOR` establishes). Duplicated rather than exported from
  * `Cell` to keep that leaf untouched and free of a cross-component coupling.
  */
-const PIECE_FILL: Record<TetrominoType, string> = {
+const PIECE_FILL: Record<PieceType, string> = {
   I: "bg-piece-i",
   O: "bg-piece-o",
   T: "bg-piece-t",
@@ -45,7 +45,7 @@ const PIECE_FILL: Record<TetrominoType, string> = {
 
 interface HoldBoxProps {
   /** The held piece id, or `null` before the first hold (renders an empty slot). */
-  type: TetrominoType | null;
+  type: PieceType | null;
   /** Whether a hold is still allowed this drop; `false` dims the box (the block "felt"). */
   canHold: boolean;
 }

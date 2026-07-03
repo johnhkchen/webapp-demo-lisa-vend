@@ -78,7 +78,7 @@ import type { Input } from "@/lib/game";
 
 /**
  * Keyboard → core `Input`. Keys absent here are ignored (browser shortcuts stay live).
- * `ArrowUp`/`x` rotate clockwise, `z` counter-clockwise — the conventional web-Tetris defaults.
+ * `ArrowUp`/`x` rotate clockwise, `z` counter-clockwise — the conventional web falling-block defaults.
  * `ArrowDown` is soft-drop (accelerated descent) and `" "` (Space) is hard-drop (instant drop +
  * lock). `c`/`C` is hold (swap the active piece into the hold slot). Soft-drop and hold are fine to
  * auto-repeat while held (hold's repeat is a core no-op); hard-drop and pause are guarded against

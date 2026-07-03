@@ -18,7 +18,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import type { Board, Point, TetrominoType } from "@/lib/types";
+import type { Board, Point, PieceType } from "@/lib/types";
 import {
   createInitialState,
   step,
@@ -100,7 +100,7 @@ export interface GameView {
   state: GameState;
   view: Board;
   ghost: Point[];
-  queue: TetrominoType[];
+  queue: PieceType[];
   clearedRows: number[];
   dispatch: (input: Input) => void;
   /**

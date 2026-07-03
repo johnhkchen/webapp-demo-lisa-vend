@@ -1,9 +1,9 @@
 import Cell from "@/components/Cell";
-import type { Board as BoardMatrix, Point, TetrominoType } from "@/lib/types";
+import type { Board as BoardMatrix, Point, PieceType } from "@/lib/types";
 import { COLS, ROWS } from "@/lib/constants";
 
 /**
- * The Tetris board — a props-driven CSS grid that paints a settled-board matrix.
+ * The RowClear board — a props-driven CSS grid that paints a settled-board matrix.
  *
  * Takes the row-major `board` model (`lib/types.ts`, `board[y][x]`) and flattens it at the render
  * boundary into one `Cell` per square, delegating each square's look to `Cell`. Owns only the grid
@@ -38,7 +38,7 @@ interface BoardProps {
   /** The active piece's landing cells to mark translucent (from `ghostCells`). */
   ghost?: Point[];
   /** The active piece's id, tinting the ghost marks; `null`/absent draws no ghost. */
-  ghostType?: TetrominoType | null;
+  ghostType?: PieceType | null;
   /** Cleared-row indices to flash for the current clear burst (from `useClearFlash`). */
   flashRows?: number[];
   /** The clear burst generation; keys the overlay so the flash animation restarts each burst. */
@@ -68,7 +68,7 @@ export default function Board({
       style={{ width: "min(90vw, 300px)", aspectRatio: `${cols} / ${rows}` }}
     >
       <div
-        aria-label="Tetris board"
+        aria-label="RowClear board"
         className="clay-well grid h-full w-full gap-px p-2"
         style={gridStyle}
       >

@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 
 import NextPreview from "@/components/NextPreview";
-import { cellsFor, BOUNDING_BOX, TETROMINO_TYPES } from "@/lib/tetrominoes";
-import type { TetrominoType } from "@/lib/types";
+import { cellsFor, BOUNDING_BOX, PIECE_TYPES } from "@/lib/pieces";
+import type { PieceType } from "@/lib/types";
 
 afterEach(cleanup);
 
@@ -14,10 +14,10 @@ function nextSquares(container: HTMLElement): HTMLElement[] {
 }
 
 /** The distinct piece ids in DOM order — one per rendered tile (queue order, top-down). */
-function tileOrder(container: HTMLElement): TetrominoType[] {
-  const order: TetrominoType[] = [];
+function tileOrder(container: HTMLElement): PieceType[] {
+  const order: PieceType[] = [];
   for (const el of nextSquares(container)) {
-    const id = el.dataset.next as TetrominoType;
+    const id = el.dataset.next as PieceType;
     if (order[order.length - 1] !== id) order.push(id);
   }
   return order;
@@ -38,9 +38,9 @@ describe("NextPreview", () => {
     expect(tileOrder(container)).toEqual(["I", "O", "T"]);
   });
 
-  it("draws every tetromino as four squares tagged with its id", () => {
-    const { container } = render(<NextPreview queue={[...TETROMINO_TYPES]} />);
-    for (const type of TETROMINO_TYPES) {
+  it("draws every piece as four squares tagged with its id", () => {
+    const { container } = render(<NextPreview queue={[...PIECE_TYPES]} />);
+    for (const type of PIECE_TYPES) {
       const own = nextSquares(container).filter((el) => el.dataset.next === type);
       expect(own).toHaveLength(4);
     }
@@ -48,11 +48,11 @@ describe("NextPreview", () => {
 
   it("places each tile's filled squares at cellsFor(type, 0) — reuses shape data, not hard-coded coords", () => {
     // One tile per type so each tile is an isolated inner grid.
-    const { container } = render(<NextPreview queue={[...TETROMINO_TYPES]} />);
+    const { container } = render(<NextPreview queue={[...PIECE_TYPES]} />);
     const grids = container.querySelectorAll<HTMLElement>(".grid");
-    expect(grids).toHaveLength(TETROMINO_TYPES.length);
+    expect(grids).toHaveLength(PIECE_TYPES.length);
 
-    TETROMINO_TYPES.forEach((type, t) => {
+    PIECE_TYPES.forEach((type, t) => {
       const box = BOUNDING_BOX[type];
       const cells = grids[t].querySelectorAll<HTMLElement>(":scope > div");
       const got = Array.from(cells)

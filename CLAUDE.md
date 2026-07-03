@@ -2,7 +2,7 @@
 
 ## Project
 
-webapp-demo-lisa-vend — a visually stunning, single-player **Tetris** game built with Next.js
+webapp-demo-lisa-vend — a visually stunning, single-player **RowClear** falling-block puzzle game built with Next.js
 (App Router) and deployed to **Cloudflare Workers** via vinext (see `docs/deploy.md`). A
 fast-payoff demo of the vend→lisa drive. See `docs/knowledge/vision.md` for scope and
 `docs/knowledge/charter.md` for the value function.
@@ -36,7 +36,7 @@ authenticated deploy runbook.
 ```
 app/                # Next.js App Router entry (page.tsx, layout.tsx, globals.css)
 components/         # Board, Cell, NextPreview, Scoreboard, GameOverlay, ...
-lib/                # Pure game logic: tetrominoes, board ops, collision, scoring, RNG
+lib/                # Pure game logic: pieces, board ops, collision, scoring, RNG
 ```
 
 Keep game logic in `lib/` pure and framework-free so it's testable and so lisa tracks touching

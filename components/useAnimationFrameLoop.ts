@@ -3,7 +3,7 @@
 /**
  * `useAnimationFrameLoop` — fire a callback once per fixed interval, driven by `requestAnimationFrame`.
  *
- * A game-agnostic timing seam: it knows nothing about Tetris, taking only a `() => void`. That is
+ * A game-agnostic timing seam: it knows nothing about RowClear, taking only a `() => void`. That is
  * what keeps it unit-testable in isolation and reusable (a later pause gate, hard-drop repeat, or
  * sub-row animation can all hang off the same loop). The game seam (`useGame`) supplies the callback
  * and the interval; this hook owns only *when* to call it.

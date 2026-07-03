@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 
 import HoldBox from "@/components/HoldBox";
-import { cellsFor, BOUNDING_BOX, TETROMINO_TYPES } from "@/lib/tetrominoes";
+import { cellsFor, BOUNDING_BOX, PIECE_TYPES } from "@/lib/pieces";
 
 afterEach(cleanup);
 
@@ -27,8 +27,8 @@ describe("HoldBox", () => {
     expect(squares.every((el) => el.dataset.hold === "T")).toBe(true);
   });
 
-  it("draws every tetromino as four filled squares tagged with its id", () => {
-    for (const type of TETROMINO_TYPES) {
+  it("draws every piece as four filled squares tagged with its id", () => {
+    for (const type of PIECE_TYPES) {
       const { container } = render(<HoldBox type={type} canHold={true} />);
       const squares = holdSquares(container);
       expect(squares).toHaveLength(4);
@@ -38,7 +38,7 @@ describe("HoldBox", () => {
   });
 
   it("places the filled squares at cellsFor(type, 0) — reuses shape data, not hard-coded coords", () => {
-    for (const type of TETROMINO_TYPES) {
+    for (const type of PIECE_TYPES) {
       const box = BOUNDING_BOX[type];
       const { container } = render(<HoldBox type={type} canHold={true} />);
       // Recover each held square's grid index from its position among ALL inner-grid squares.

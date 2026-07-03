@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest";
 import { clearLines } from "./line-clear";
 import { emptyBoard } from "./board";
 import { COLS, ROWS } from "./constants";
-import type { Board, Cell, TetrominoType } from "./types";
+import type { Board, Cell, PieceType } from "./types";
 
 /** A fully-settled row of `width` cells, all the given type. */
-const fullRow = (width: number, type: TetrominoType): Cell[] =>
+const fullRow = (width: number, type: PieceType): Cell[] =>
   Array.from({ length: width }, (): Cell => type);
 
 /** Count of non-null (settled) cells in a board. */
@@ -44,7 +44,7 @@ describe("clearLines — collapse", () => {
     expect(out[0].every((c) => c === null)).toBe(true);
   });
 
-  it("restacks survivors to the bottom when 4 rows clear (a Tetris)", () => {
+  it("restacks survivors to the bottom when 4 rows clear (a quad)", () => {
     const board = emptyBoard(COLS, ROWS);
     board[10][5] = "L"; // lone marker high up
     for (let i = 0; i < 4; i++) board[ROWS - 1 - i] = fullRow(COLS, "I"); // bottom 4 full

@@ -10,27 +10,27 @@
  * Coordinate convention (matches `types.ts`/`board.ts`): the board is row-major, addressed
  * `board[y][x]`, with `x` growing right and `y` growing down from a top-left origin. A piece's
  * occupied cells are *derived*, not stored — `pieceCells` resolves them as `position + offset`
- * from the shape table in `tetrominoes.ts`, mirroring the normalization in `Piece`.
+ * from the shape table in `pieces.ts`, mirroring the normalization in `Piece`.
  *
  * Signature note: the acceptance criterion writes `collides(board, piece, pos, rot)`; here
- * `piece` is the `TetrominoType`, since only the shape identity is intrinsic — `pos` and `rot`
+ * `piece` is the `PieceType`, since only the shape identity is intrinsic — `pos` and `rot`
  * are passed separately precisely so a *hypothetical* placement can be tested without mutating a
  * `Piece`. Boundary note: a cell above the top of the field (`y < 0`) counts as out of bounds;
  * whether spawn tolerates a buffer above the visible field is a spawn-policy decision for a later
  * ticket, kept out of this pure geometric primitive.
  */
 
-import type { Board, Point, TetrominoType, RotationState } from "./types";
-import { cellsFor } from "./tetrominoes";
+import type { Board, Point, PieceType, RotationState } from "./types";
+import { cellsFor } from "./pieces";
 
 /**
  * The absolute board cells a piece would occupy at `pos`/`rot` — its shape offsets translated by
  * the anchor. Returns a fresh array of fresh `Point`s, so callers never alias (or mutate) the
- * shared `TETROMINO_CELLS` data. Reused by collision here, and available to the renderer and
+ * shared `PIECE_CELLS` data. Reused by collision here, and available to the renderer and
  * lock/merge in later tickets. Cell order follows `cellsFor` and is not part of the contract.
  */
 export function pieceCells(
-  type: TetrominoType,
+  type: PieceType,
   pos: Point,
   rot: RotationState,
 ): Point[] {
@@ -51,7 +51,7 @@ export function pieceCells(
  */
 export function collides(
   board: Board,
-  type: TetrominoType,
+  type: PieceType,
   pos: Point,
   rot: RotationState,
 ): boolean {

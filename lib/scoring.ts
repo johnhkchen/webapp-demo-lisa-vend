@@ -8,14 +8,14 @@
  * calls `clearLines` then feeds the count here and adds the result to the game score. Wiring
  * is intentionally not done here, to keep this a standalone, trivially-testable rule.
  *
- * The base table is the classic single/double/triple/tetris award: 40 / 100 / 300 / 1200.
- * It is deliberately super-linear — a tetris pays 1200, far more than four singles (4×40 =
+ * The base table is the classic single/double/triple/quad award: 40 / 100 / 300 / 1200.
+ * It is deliberately super-linear — a quad pays 1200, far more than four singles (4×40 =
  * 160) — the standard incentive to clear four rows at once.
  */
 
 /**
  * Base line-clear award indexed by the number of lines cleared: index 0 is the no-clear
- * case (0 points), then single/double/triple/tetris = 40/100/300/1200. The value returned
+ * case (0 points), then single/double/triple/quad = 40/100/300/1200. The value returned
  * by `scoreFor` is this base times the level factor. Frozen (`as const`) as the single
  * source of truth for the payout curve.
  */
@@ -25,7 +25,7 @@ export const LINE_CLEAR_BASE = [0, 40, 100, 300, 1200] as const;
  * Score delta for clearing `lines` rows at the given `level`.
  *
  * Returns `LINE_CLEAR_BASE[lines] * level`. `level` is 1-based and defaults to 1, so the
- * bare `scoreFor(lines)` yields the standard base table (40/100/300/1200). NES Tetris uses
+ * bare `scoreFor(lines)` yields the standard base table (40/100/300/1200). Classic NES scoring uses
  * `base × (level + 1)` with a 0-based level; our `level` corresponds to their level + 1.
  *
  * Total by construction: any `lines` outside 1..4 — including 0 (a no-clear lock),

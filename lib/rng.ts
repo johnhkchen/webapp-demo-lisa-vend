@@ -1,5 +1,5 @@
 /**
- * Seeded pseudo-random number generator for the Tetris game core.
+ * Seeded pseudo-random number generator for the RowClear game core.
  *
  * Pure, framework-free (no React/Next; enforced by the `lib/**` eslint boundary). The generator
  * is *deterministic*: its entire state is fixed by the integer seed, so two generators built

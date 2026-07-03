@@ -18,7 +18,7 @@ describe("overlayPiece", () => {
     for (const { x, y } of expected) {
       expect(out[y][x]).toBe("T");
     }
-    // ...and nothing else is filled (4 cells total for a tetromino).
+    // ...and nothing else is filled (4 cells total for a piece).
     const filled = out.flat().filter((c) => c !== null);
     expect(filled).toHaveLength(4);
     expect(filled.every((c) => c === "T")).toBe(true);

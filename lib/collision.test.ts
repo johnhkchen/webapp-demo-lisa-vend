@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { collides, pieceCells } from "./collision";
-import { cellsFor } from "./tetrominoes";
+import { cellsFor } from "./pieces";
 import { emptyBoard } from "./board";
-import type { Board, Point, TetrominoType, RotationState } from "./types";
+import type { Board, Point, PieceType, RotationState } from "./types";
 
 /** Stable string key for a cell, so cell lists can be compared as unordered sets. */
 const keyOf = (c: Point): string => `${c.x},${c.y}`;
 const asSet = (cells: readonly Point[]): Set<string> => new Set(cells.map(keyOf));
 
 /** Stamp settled cells of a given type into a fixture board (mutates + returns it). */
-const settle = (board: Board, cells: Point[], type: TetrominoType): Board => {
+const settle = (board: Board, cells: Point[], type: PieceType): Board => {
   for (const { x, y } of cells) board[y][x] = type;
   return board;
 };
@@ -38,7 +38,7 @@ describe("pieceCells", () => {
 interface Case {
   name: string;
   board: Board;
-  type: TetrominoType;
+  type: PieceType;
   pos: Point;
   rot: RotationState;
   expected: boolean;

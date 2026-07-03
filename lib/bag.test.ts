@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { createSevenBag, type SevenBag } from "./bag";
-import { TETROMINO_TYPES } from "./tetrominoes";
-import type { TetrominoType } from "./types";
+import { PIECE_TYPES } from "./pieces";
+import type { PieceType } from "./types";
 
 /** Draw `n` ids from a bag. */
-const drawN = (bag: SevenBag, n: number): TetrominoType[] =>
+const drawN = (bag: SevenBag, n: number): PieceType[] =>
   Array.from({ length: n }, () => bag.next());
 
 /** Split an array into consecutive chunks of `size` (drops a trailing partial chunk). */
@@ -14,7 +14,7 @@ const chunk = <T>(arr: readonly T[], size: number): T[][] => {
   return out;
 };
 
-const ALL_IDS = [...TETROMINO_TYPES].sort();
+const ALL_IDS = [...PIECE_TYPES].sort();
 
 describe("createSevenBag", () => {
   it("is reproducible: two bags from the same seed yield identical sequences over 100 draws", () => {
@@ -45,8 +45,8 @@ describe("createSevenBag", () => {
     expect(a).not.toEqual(b);
   });
 
-  it("only ever yields ids from the tetromino alphabet", () => {
-    const valid = new Set<TetrominoType>(TETROMINO_TYPES);
+  it("only ever yields ids from the piece alphabet", () => {
+    const valid = new Set<PieceType>(PIECE_TYPES);
     for (const id of drawN(createSevenBag(99), 100)) {
       expect(valid.has(id)).toBe(true);
     }

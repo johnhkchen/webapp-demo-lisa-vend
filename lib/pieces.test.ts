@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import type { Point, RotationState } from "./types";
 import {
-  TETROMINO_TYPES,
+  PIECE_TYPES,
   BOUNDING_BOX,
-  TETROMINO_CELLS,
+  PIECE_CELLS,
   cellsFor,
-} from "./tetrominoes";
+} from "./pieces";
 
 /** Stable string key for a cell, so states can be compared as unordered sets. */
 const keyOf = (c: Point): string => `${c.x},${c.y}`;
@@ -32,39 +32,39 @@ const KNOWN_SPAWN: Record<string, [number, number][]> = {
   L: [[2, 0], [0, 1], [1, 1], [2, 1]],
 };
 
-describe("tetrominoes", () => {
+describe("pieces", () => {
   it("defines all seven pieces, each with four rotation states", () => {
-    expect([...TETROMINO_TYPES].sort()).toEqual(
+    expect([...PIECE_TYPES].sort()).toEqual(
       ["I", "J", "L", "O", "S", "T", "Z"].sort(),
     );
-    expect(TETROMINO_TYPES).toHaveLength(7);
-    for (const type of TETROMINO_TYPES) {
-      expect(TETROMINO_CELLS[type]).toHaveLength(4);
+    expect(PIECE_TYPES).toHaveLength(7);
+    for (const type of PIECE_TYPES) {
+      expect(PIECE_CELLS[type]).toHaveLength(4);
     }
   });
 
   it("every one of the 28 states occupies exactly four cells", () => {
-    for (const type of TETROMINO_TYPES) {
+    for (const type of PIECE_TYPES) {
       for (const r of ROTATIONS) {
-        expect(TETROMINO_CELLS[type][r], `${type} state ${r}`).toHaveLength(4);
+        expect(PIECE_CELLS[type][r], `${type} state ${r}`).toHaveLength(4);
       }
     }
   });
 
   it("every state's four cells are distinct", () => {
-    for (const type of TETROMINO_TYPES) {
+    for (const type of PIECE_TYPES) {
       for (const r of ROTATIONS) {
-        const cells = TETROMINO_CELLS[type][r];
+        const cells = PIECE_CELLS[type][r];
         expect(asSet(cells).size, `${type} state ${r} has a duplicate cell`).toBe(4);
       }
     }
   });
 
   it("every offset lies within the piece's bounding box", () => {
-    for (const type of TETROMINO_TYPES) {
+    for (const type of PIECE_TYPES) {
       const n = BOUNDING_BOX[type];
       for (const r of ROTATIONS) {
-        for (const c of TETROMINO_CELLS[type][r]) {
+        for (const c of PIECE_CELLS[type][r]) {
           expect(c.x, `${type} state ${r} x out of box`).toBeGreaterThanOrEqual(0);
           expect(c.y, `${type} state ${r} y out of box`).toBeGreaterThanOrEqual(0);
           expect(c.x, `${type} state ${r} x out of box`).toBeLessThan(n);
@@ -75,13 +75,13 @@ describe("tetrominoes", () => {
   });
 
   it("each non-O state is the previous state rotated 90° CW within the box (full cycle)", () => {
-    for (const type of TETROMINO_TYPES) {
+    for (const type of PIECE_TYPES) {
       if (type === "O") continue;
       const n = BOUNDING_BOX[type];
       for (const r of ROTATIONS) {
         const next = ((r + 1) % 4) as RotationState;
-        const derived = asSet(rotateCW(TETROMINO_CELLS[type][r], n));
-        const stored = asSet(TETROMINO_CELLS[type][next]);
+        const derived = asSet(rotateCW(PIECE_CELLS[type][r], n));
+        const stored = asSet(PIECE_CELLS[type][next]);
         expect(
           [...derived].sort(),
           `${type}: rotateCW(state ${r}) should equal state ${next}`,
@@ -91,25 +91,25 @@ describe("tetrominoes", () => {
   });
 
   it("O is rotation-invariant (all four states are the same square)", () => {
-    const spawn = asSet(TETROMINO_CELLS.O[0]);
+    const spawn = asSet(PIECE_CELLS.O[0]);
     for (const r of ROTATIONS) {
-      expect([...asSet(TETROMINO_CELLS.O[r])].sort()).toEqual([...spawn].sort());
+      expect([...asSet(PIECE_CELLS.O[r])].sort()).toEqual([...spawn].sort());
     }
   });
 
   it("spawn states match the known SRS offsets", () => {
-    for (const type of TETROMINO_TYPES) {
+    for (const type of PIECE_TYPES) {
       const expected = new Set(KNOWN_SPAWN[type].map(([x, y]) => `${x},${y}`));
-      expect([...asSet(TETROMINO_CELLS[type][0])].sort(), `${type} spawn`).toEqual(
+      expect([...asSet(PIECE_CELLS[type][0])].sort(), `${type} spawn`).toEqual(
         [...expected].sort(),
       );
     }
   });
 
   it("cellsFor returns the same array as the table", () => {
-    for (const type of TETROMINO_TYPES) {
+    for (const type of PIECE_TYPES) {
       for (const r of ROTATIONS) {
-        expect(cellsFor(type, r)).toBe(TETROMINO_CELLS[type][r]);
+        expect(cellsFor(type, r)).toBe(PIECE_CELLS[type][r]);
       }
     }
   });

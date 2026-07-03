@@ -10,7 +10,7 @@
  * Reuse, not reimplementation — the same contract `ghost.ts` keeps: the landing comes only from
  * `hardDrop` (`lib/movement.ts`), the resolved cells only from `pieceCells` (`lib/collision.ts`),
  * the settled board only from `lockPiece` (`lib/gravity.ts`), and the offset geometry only from
- * `cellsFor` (`lib/tetrominoes.ts`). No shape or collision math lives here, so a candidate can
+ * `cellsFor` (`lib/pieces.ts`). No shape or collision math lives here, so a candidate can
  * never disagree with an actual drop.
  *
  * Coordinate convention (matches `types.ts`/`board.ts`): row-major `board[y][x]`, `x` right,
@@ -31,11 +31,11 @@
  * tables are only read; fresh Points and boards go out.
  */
 
-import type { Board, Piece, Point, RotationState, TetrominoType } from "./types";
+import type { Board, Piece, Point, RotationState, PieceType } from "./types";
 import { collides, pieceCells } from "./collision";
 import { hardDrop } from "./movement";
 import { lockPiece } from "./gravity";
-import { cellsFor } from "./tetrominoes";
+import { cellsFor } from "./pieces";
 
 /**
  * One enumerated placement: how the piece was dropped (`rotation` + spawn anchor `column`), where
@@ -81,7 +81,7 @@ function cellKey(cells: readonly Point[]): string {
  */
 export function enumeratePlacements(
   board: Board,
-  type: TetrominoType,
+  type: PieceType,
 ): PlacementCandidate[] {
   const width = board[0]?.length ?? 0;
   const candidates: PlacementCandidate[] = [];

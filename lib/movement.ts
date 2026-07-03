@@ -20,8 +20,8 @@
  * bag or any queue.
  */
 
-import type { Board, Piece, TetrominoType } from "./types";
-import { BOUNDING_BOX } from "./tetrominoes";
+import type { Board, Piece, PieceType } from "./types";
+import { BOUNDING_BOX } from "./pieces";
 import { collides } from "./collision";
 
 /**
@@ -35,7 +35,7 @@ import { collides } from "./collision";
  * top-out/game-over (a spawn-policy concern for a later ticket); a caller can `collides` the
  * result against the board if it needs to detect a blocked spawn.
  */
-export function spawnPiece(type: TetrominoType, width: number): Piece {
+export function spawnPiece(type: PieceType, width: number): Piece {
   const x = Math.floor((width - BOUNDING_BOX[type]) / 2);
   return { type, rotation: 0, position: { x, y: 0 } };
 }

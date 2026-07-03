@@ -60,7 +60,7 @@ describe("Board — flash channel", () => {
     const { container } = render(
       <Board board={emptyBoard(COLS, ROWS)} flashRows={[5]} flashKey={1} />,
     );
-    expect(container.querySelector('[aria-label="Tetris board"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="RowClear board"]')).not.toBeNull();
     expect(container.querySelectorAll("[data-cell]")).toHaveLength(ROWS * COLS);
     expect(flashBars(container)).toHaveLength(1);
   });

@@ -10,14 +10,14 @@ import {
 import { pieceCells } from "./collision";
 import { collides } from "./collision";
 import { emptyBoard } from "./board";
-import type { Board, Point, Piece, TetrominoType } from "./types";
+import type { Board, Point, Piece, PieceType } from "./types";
 
 /** Stable string key for a cell, so cell lists compare as unordered sets. */
 const keyOf = (c: Point): string => `${c.x},${c.y}`;
 const asSet = (cells: readonly Point[]): Set<string> => new Set(cells.map(keyOf));
 
 /** Stamp settled cells of a given type into a fixture board (mutates + returns it). */
-const settle = (board: Board, cells: Point[], type: TetrominoType): Board => {
+const settle = (board: Board, cells: Point[], type: PieceType): Board => {
   for (const { x, y } of cells) board[y][x] = type;
   return board;
 };
@@ -29,7 +29,7 @@ const fullBoardExcept = (
   clear: Point[],
 ): Board => {
   const board: Board = Array.from({ length: height }, () =>
-    Array.from({ length: width }, (): TetrominoType => "I"),
+    Array.from({ length: width }, (): PieceType => "I"),
   );
   for (const { x, y } of clear) board[y][x] = null;
   return board;

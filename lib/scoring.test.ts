@@ -6,7 +6,7 @@ describe("scoreFor — base tiers", () => {
     expect(scoreFor(0)).toBe(0);
   });
 
-  it("returns the standard single/double/triple/tetris values at level 1", () => {
+  it("returns the standard single/double/triple/quad values at level 1", () => {
     const tiers: [number, number][] = [
       [1, 40],
       [2, 100],

@@ -67,7 +67,7 @@ describe("Board", () => {
     const { container } = render(<Board board={board} />);
 
     expect(cells(container)).toHaveLength(6);
-    const grid = container.querySelector<HTMLElement>('[aria-label="Tetris board"]');
+    const grid = container.querySelector<HTMLElement>('[aria-label="RowClear board"]');
     expect(grid?.style.gridTemplateColumns).toContain("repeat(3");
     expect(grid?.style.gridTemplateRows).toContain("repeat(2");
   });

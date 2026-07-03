@@ -8,14 +8,14 @@ import { spawnPiece } from "./movement";
 import { clearLines } from "./line-clear";
 import { emptyBoard } from "./board";
 import { COLS, ROWS } from "./constants";
-import type { Board, TetrominoType } from "./types";
+import type { Board, PieceType } from "./types";
 
 /**
  * A controllable game state: a fixed settled `board` and a freshly-spawned active piece of `type`
  * (rotation 0, canonical spawn column — mirrors a real spawn). Reuses a real seeded bag from
  * `createInitialState` so `step` has a bag to draw the next piece from when the bot's move locks.
  */
-function stateWith(board: Board, type: TetrominoType): GameState {
+function stateWith(board: Board, type: PieceType): GameState {
   const base = createInitialState(1);
   return { ...base, board, active: spawnPiece(type, COLS) };
 }
@@ -26,7 +26,7 @@ function play(state: GameState, inputs: Input[]): GameState {
 }
 
 /** Independent argmax oracle: the highest-`evaluate` candidate, keep-first on ties. */
-function expectedBest(board: Board, type: TetrominoType): PlacementCandidate {
+function expectedBest(board: Board, type: PieceType): PlacementCandidate {
   const candidates = enumeratePlacements(board, type);
   let best = candidates[0];
   let bestScore = evaluate(best.board);
@@ -56,7 +56,7 @@ const BOT_INPUTS = new Set<Input>(["rotateCW", "rotateCCW", "left", "right", "ha
 describe("chooseMove — acceptance: enactment & legality", () => {
   it("folds through step to land the active piece at the highest-heuristic placement", () => {
     const board = jaggedBoard();
-    for (const type of ["T", "L", "S", "I", "O", "J", "Z"] as TetrominoType[]) {
+    for (const type of ["T", "L", "S", "I", "O", "J", "Z"] as PieceType[]) {
       const inputs = chooseMove(stateWith(board, type));
 
       // A move always ends by committing the drop, and uses only bot-legal tokens.
@@ -91,7 +91,7 @@ describe("chooseMove — acceptance: sane choices", () => {
     const board = emptyBoard(COLS, ROWS);
     for (let x = 0; x < 6; x++) board[ROWS - 1][x] = "I";
 
-    const type: TetrominoType = "O";
+    const type: PieceType = "O";
     const chosen = expectedBest(board, type);
 
     // Oracle sanity: chosen is genuinely the max over all candidates.

@@ -16,20 +16,20 @@
  *
  * Coordinate convention (matches `types.ts`/`board.ts`): the board is row-major, `board[y][x]`,
  * with `x` growing right and `y` growing **down** from a top-left origin — the same CW rotation the
- * `tetrominoes.ts` shape chain uses (state 0→1→2→3 is 90° CW).
+ * `pieces.ts` shape chain uses (state 0→1→2→3 is 90° CW).
  *
  * CRITICAL — y-down negation: the canonical SRS kick tables are published in a y-**up** frame
- * (Tetris Guideline / Tetris Wiki). Every offset's y component is therefore **negated** in the
+ * (the standard SRS (Super Rotation System)). Every offset's y component is therefore **negated** in the
  * constants below to match this engine's y-down frame; each row carries its published y-up source
  * in a trailing comment so the flip can be audited. Only the `(x, y)` sign convention differs — the
- * spawn orientations and CW chain in `tetrominoes.ts` are standard SRS, so the tables apply directly.
+ * spawn orientations and CW chain in `pieces.ts` are standard SRS, so the tables apply directly.
  *
  * Scope boundary: rotation only. Automatic gravity and lock-on-landing are a later ticket; so is
  * T-spin *scoring* — the "T-spin corner kick" here is the kick *geometry* (test 5) that lets a T
  * rotate into a slot, not spin detection.
  */
 
-import type { Board, Piece, Point, RotationState, TetrominoType } from "./types";
+import type { Board, Piece, Point, RotationState, PieceType } from "./types";
 import { collides } from "./collision";
 
 /** Direction of a single 90° rotation step. */
@@ -87,7 +87,7 @@ export const KICKS_O: Readonly<Record<string, readonly Point[]>> = {
 
 /** Select the kick table for a piece type: O and I have their own; J/L/S/T/Z share one. */
 function kickTableFor(
-  type: TetrominoType,
+  type: PieceType,
 ): Readonly<Record<string, readonly Point[]>> {
   if (type === "O") return KICKS_O;
   if (type === "I") return KICKS_I;

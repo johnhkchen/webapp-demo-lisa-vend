@@ -9,7 +9,7 @@ afterEach(cleanup);
 
 /**
  * The next-queue surface (T-007-04-01 AC): `useGame` exposes `queue` — the next `PREVIEW_COUNT`
- * upcoming tetromino ids, sourced from the bag's non-consuming `peek` — and that queue must match
+ * upcoming piece ids, sourced from the bag's non-consuming `peek` — and that queue must match
  * the pieces the game actually spawns next. As with the gravity suite, these also prove the hook
  * reimplements no rules: its queue tracks the pure core (`upcomingPieces`) exactly.
  */

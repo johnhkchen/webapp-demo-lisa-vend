@@ -18,7 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import { createInitialState, step, type GameState, type Input } from "./game";
-import type { Board, Piece, TetrominoType } from "./types";
+import type { Board, Piece, PieceType } from "./types";
 
 /**
  * The serializable projection of a `GameState` — everything except the live `bag` closure.
@@ -57,7 +57,7 @@ function runTrace(seed: number, script: readonly Input[]): Snapshot[] {
 }
 
 /** Draw the next `n` ids from a run's bag — probes its position in the piece stream. Mutates. */
-function drawIds(s: GameState, n: number): TetrominoType[] {
+function drawIds(s: GameState, n: number): PieceType[] {
   return Array.from({ length: n }, () => s.bag.next());
 }
 

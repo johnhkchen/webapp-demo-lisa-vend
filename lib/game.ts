@@ -1,6 +1,6 @@
 /**
  * The game-core reducer — the single pure `step(state, input)` that ties every `lib/` primitive
- * into a running Tetris state machine, and the `GameState`/`Input`/`createInitialState` surface
+ * into a running RowClear state machine, and the `GameState`/`Input`/`createInitialState` surface
  * around it.
  *
  * Pure, framework-free (no React/Next; enforced by the `lib/**` eslint boundary). This is the
@@ -35,7 +35,7 @@
  * module imports nothing from React/Next and touches no other file.
  */
 
-import type { Board, Piece, TetrominoType } from "./types";
+import type { Board, Piece, PieceType } from "./types";
 import { COLS, ROWS } from "./constants";
 import { emptyBoard } from "./board";
 import { createSevenBag, type SevenBag } from "./bag";
@@ -79,7 +79,7 @@ export interface GameState {
   level: number;
   gameOver: boolean;
   paused: boolean;
-  hold: TetrominoType | null;
+  hold: PieceType | null;
   canHold: boolean;
   clearedRows: number[];
 }
@@ -141,13 +141,13 @@ export function createInitialState(seed: number): GameState {
 }
 
 /**
- * The next `n` upcoming tetromino ids the game will spawn, read from the live bag **without
+ * The next `n` upcoming piece ids the game will spawn, read from the live bag **without
  * consuming them** (`SevenBag.peek`). Read-only: calling this never advances the stream, so a
  * render seam can surface the lookahead without desyncing the piece sequence or breaking
  * determinism. The returned ids are exactly the types the next `n` spawns will use, in order;
  * `n <= 0` returns `[]`, and the array is a fresh copy the caller may keep or mutate freely.
  */
-export function upcomingPieces(state: GameState, n: number): TetrominoType[] {
+export function upcomingPieces(state: GameState, n: number): PieceType[] {
   return state.bag.peek(n);
 }
 

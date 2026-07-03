@@ -7,7 +7,7 @@
   ],
   "main": "vinext/server/fetch-handler",
   "routes": [
-    { "pattern": "tetris.b28.dev", "custom_domain": true }
+    { "pattern": "rowclear.b28.dev", "custom_domain": true }
   ],
   "assets": {
     "directory": "dist/client",

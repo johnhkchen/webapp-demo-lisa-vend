@@ -1,10 +1,10 @@
-import type { Cell as CellValue, TetrominoType } from "@/lib/types";
+import type { Cell as CellValue, PieceType } from "@/lib/types";
 
 /**
- * One square of the Tetris board grid — presentational, driven by a single stored cell value.
+ * One square of the RowClear board grid — presentational, driven by a single stored cell value.
  *
  * `cell` is the model value (`lib/types.ts`): `null` for an empty square, otherwise the id of the
- * tetromino settled there. A square has three visual states — settled (solid neon), ghost (a
+ * piece settled there. A square has three visual states — settled (solid neon), ghost (a
  * translucent landing marker, T-007-02-02), and empty — decided here; it contains no game logic
  * (see CLAUDE.md / this ticket's AC). Distinct from the `Cell` value type it renders, which is
  * imported here aliased as `CellValue`.
@@ -27,7 +27,7 @@ import type { Cell as CellValue, TetrominoType } from "@/lib/types";
  * deliberately does NOT transition `background-color` (a paint property, off-compositor) — fills
  * still swap instantly; only transform/opacity interpolate. See `app/globals.css`.
  */
-const CELL_COLOR: Record<TetrominoType, string> = {
+const CELL_COLOR: Record<PieceType, string> = {
   I: "bg-piece-i",
   O: "bg-piece-o",
   T: "bg-piece-t",
@@ -43,7 +43,7 @@ const CELL_COLOR: Record<TetrominoType, string> = {
  * the solid fill and the blank empty cell. Literal strings for the same tree-shaking reason as
  * `CELL_COLOR` — the `/15` and `/60` opacity modifiers apply to the real `--color-piece-*` tokens.
  */
-const GHOST_COLOR: Record<TetrominoType, string> = {
+const GHOST_COLOR: Record<PieceType, string> = {
   I: "bg-piece-i/15 ring-1 ring-inset ring-piece-i/60",
   O: "bg-piece-o/15 ring-1 ring-inset ring-piece-o/60",
   T: "bg-piece-t/15 ring-1 ring-inset ring-piece-t/60",
@@ -54,13 +54,13 @@ const GHOST_COLOR: Record<TetrominoType, string> = {
 };
 
 interface CellProps {
-  /** The stored square: `null` (empty) or the settled tetromino id. */
+  /** The stored square: `null` (empty) or the settled piece id. */
   cell: CellValue;
   /**
-   * The tetromino id whose hue paints this square as the translucent ghost landing marker, or
+   * The piece id whose hue paints this square as the translucent ghost landing marker, or
    * `null`/absent for a normal square. Rendered only when `cell` is `null` (settled wins).
    */
-  ghost?: TetrominoType | null;
+  ghost?: PieceType | null;
 }
 
 export default function Cell({ cell, ghost = null }: CellProps) {

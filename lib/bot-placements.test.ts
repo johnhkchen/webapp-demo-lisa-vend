@@ -6,10 +6,10 @@ import { lockPiece } from "./gravity";
 import { pieceCells, collides } from "./collision";
 import { emptyBoard } from "./board";
 import { COLS, ROWS } from "./constants";
-import type { Board, Piece, TetrominoType } from "./types";
+import type { Board, Piece, PieceType } from "./types";
 
 /** Reconstruct the landing a candidate claims, from its `(rotation, column)` alone. */
-function drop(board: Board, type: TetrominoType, rotation: 0 | 1 | 2 | 3, column: number): Piece {
+function drop(board: Board, type: PieceType, rotation: 0 | 1 | 2 | 3, column: number): Piece {
   return hardDrop(board, { type, rotation, position: { x: column, y: 0 } });
 }
 
@@ -28,7 +28,7 @@ function jaggedBoard(): Board {
 describe("enumeratePlacements — acceptance", () => {
   it("every candidate's cells and board match a hardDrop at its rotation/column", () => {
     const board = jaggedBoard();
-    for (const type of ["T", "L", "S", "I", "O"] as TetrominoType[]) {
+    for (const type of ["T", "L", "S", "I", "O"] as PieceType[]) {
       const candidates = enumeratePlacements(board, type);
       expect(candidates.length).toBeGreaterThan(0);
       for (const c of candidates) {
