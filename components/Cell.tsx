@@ -82,7 +82,7 @@ export default function Cell({ cell, ghost = null }: CellProps) {
 
   return (
     <div
-      className="motion rounded-[2px] bg-white/5 ring-1 ring-inset ring-white/5"
+      className="motion rounded-[2px] bg-foreground/5 ring-1 ring-inset ring-foreground/10"
       data-cell="empty"
     />
   );
