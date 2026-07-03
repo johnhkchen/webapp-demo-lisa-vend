@@ -19,7 +19,8 @@
  *
  * Scope boundary: this is the *observable* layer, not the animated neon juice — the `.flash`/`.glow`
  * line-clear-and-wow treatment is E-004's to wire. Styling here is deliberately plain: a legible
- * banner, not a show.
+ * banner, not a show — and, per E-009, drawn from the clay palette (`--color-background`/
+ * `--color-foreground`) rather than the app's former neon/glass one.
  */
 
 interface GameOverlayProps {
@@ -46,12 +47,12 @@ export default function GameOverlay({
   return (
     <div
       role={paused ? "status" : "alert"}
-      className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-black/70 text-center backdrop-blur-sm"
+      className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-foreground/70 text-center"
     >
-      <h2 className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+      <h2 className="text-3xl font-bold tracking-tight text-background sm:text-4xl">
         {paused ? "PAUSED" : "GAME OVER"}
       </h2>
-      <p className="text-sm text-white/70">
+      <p className="text-sm text-background/70">
         {paused ? "Press P to resume" : `Score ${score} · Lines ${lines}`}
       </p>
     </div>
