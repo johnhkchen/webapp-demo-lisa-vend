@@ -62,11 +62,9 @@ export default function HoldBox({ type, canHold }: HoldBoxProps) {
     <div
       aria-label="Hold"
       data-can-hold={canHold}
-      className={`flex flex-col gap-2 rounded-lg border border-white/10 bg-white/5 p-2 shadow-2xl ${
-        canHold ? "" : "opacity-40"
-      }`}
+      className={`clay-chip flex flex-col gap-2 p-2 ${canHold ? "" : "opacity-40"}`}
     >
-      <span className="text-xs uppercase tracking-wide text-white/50">Hold</span>
+      <span className="text-xs uppercase tracking-wide text-foreground/70">Hold</span>
       <div
         className="grid gap-px"
         style={{
@@ -80,7 +78,10 @@ export default function HoldBox({ type, canHold }: HoldBoxProps) {
           type && filled.has(i) ? (
             <div key={i} className={`rounded-[2px] ${PIECE_FILL[type]}`} data-hold={type} />
           ) : (
-            <div key={i} className="rounded-[2px] bg-white/5" />
+            <div
+              key={i}
+              className="rounded-[2px] bg-foreground/5 ring-1 ring-inset ring-foreground/10"
+            />
           ),
         )}
       </div>
