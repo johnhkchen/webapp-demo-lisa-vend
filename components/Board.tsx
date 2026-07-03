@@ -69,7 +69,7 @@ export default function Board({
     >
       <div
         aria-label="Tetris board"
-        className="grid h-full w-full gap-px rounded-lg border border-white/10 bg-white/5 p-2 shadow-2xl"
+        className="clay-well grid h-full w-full gap-px p-2"
         style={gridStyle}
       >
         {board.flatMap((row, y) =>
@@ -85,7 +85,7 @@ export default function Board({
         <div
           key={flashKey}
           aria-hidden
-          className="pointer-events-none absolute inset-0 grid gap-px border border-transparent p-2"
+          className="pointer-events-none absolute inset-0 grid gap-px p-2"
           style={gridStyle}
         >
           {flashRows.map((y) => (
