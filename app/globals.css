@@ -25,7 +25,7 @@
 }
 
 /*
- * Per-tetromino neon palette (E-004). One signature hue per piece: I/O/T/S/Z/J/L.
+ * Per-piece neon palette (E-004). One signature hue per piece: I/O/T/S/Z/J/L.
  * `static` forces these into the build even before any component consumes them — Tailwind v4
  * tree-shakes unused theme vars, and this vocabulary is defined ahead of its Cell/Board
  * consumers (a later rendering epic). Emits --color-piece-* custom properties plus the
@@ -40,30 +40,6 @@
   --color-piece-z: oklch(0.78 0.075 120);  /* chartreuse */
   --color-piece-j: oklch(0.68 0.085 40);   /* coral  */
   --color-piece-l: oklch(0.72 0.07 240);   /* sky    */
-}
-
-/*
- * Glassmorphic panel utility (E-004). One class that makes a surface read as frosted glass —
- * backdrop blur + saturate, translucent fill, hairline border, depth shadow + lit top rim — so
- * scoreboard/preview/hold panels apply `.glass` instead of hand-rolling CSS.
- *
- * Defined in `@layer components` (not `@utility`) on purpose: Tailwind v4 tree-shakes custom
- * `@utility` classes when no scanned source consumes them, and E-004's hard boundary forbids a
- * component consumer — so a `@utility glass` would vanish from the production build. `@layer
- * components` content is emitted unconditionally (verified) AND sits below the `utilities` layer,
- * so a consumer's utilities (rounded-*, p-*, bg-*) still override individual glass properties
- * when composed. Owns material only — no radius/padding/size; the consumer composes those.
- */
-@layer components {
-  .glass {
-    background-color: color-mix(in oklab, white 6%, transparent);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
-    backdrop-filter: blur(12px) saturate(1.4);
-    border: 1px solid color-mix(in oklab, white 14%, transparent);
-    box-shadow:
-      0 8px 32px rgb(0 0 0 / 0.37),
-      inset 0 1px 0 color-mix(in oklab, white 12%, transparent);
-  }
 }
 
 /*
@@ -139,16 +115,16 @@
   0% {
     opacity: 1;
     transform: scaleY(1);
-    background-color: var(--flash-tint, oklch(0.97 0.06 200));
+    background-color: var(--flash-tint, oklch(0.97 0.03 90));
     box-shadow: 0 0 0 0 transparent;
   }
   35% {
     opacity: 1;
     transform: scaleY(1);
-    background-color: var(--flash-tint, oklch(0.97 0.06 200));
+    background-color: var(--flash-tint, oklch(0.97 0.03 90));
     box-shadow:
-      0 0 var(--flash-bloom-1, 8px) var(--flash-tint, oklch(0.97 0.06 200)),
-      0 0 var(--flash-bloom-2, 28px) var(--flash-tint, oklch(0.97 0.06 200));
+      0 0 var(--flash-bloom-1, 8px) var(--flash-tint, oklch(0.97 0.03 90)),
+      0 0 var(--flash-bloom-2, 28px) var(--flash-tint, oklch(0.97 0.03 90));
   }
   100% {
     opacity: 0;
